@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Return Vehicle{% endblock %}
+
+{% block content %}
+<div class="return-form-page">
+    <h1>Return Vehicle</h1>
+    
+    <div class="rental-summary">
+        <h2>{{ vehicle.get_year() }} {{ vehicle.get_make() }} {{ vehicle.get_model() }}</h2>
+        <p><strong>Vehicle ID:</strong> {{ vehicle.get_vehicle_id() }}</p>
+        <p><strong>Rental Period:</strong> {{ rental.start_date }} to {{ rental.end_date }}</p>
+        <p><strong>Original Rental Cost:</strong> ${{ "%.2f"|format(rental.cost) }}</p>
+    </div>
+    
+    <form method="POST" class="return-form">
+        {% if can_return_early %}
+        <div class="early-return-notice">
+            <h3>Early Return Available</h3>
+            <p>You can return this vehicle early. You will only be charged for the actual days used.</p>
+        </div>
+        
+        <div class="form-group">
+            <label for="return_date">Actual Return Date:</label>
+            <input type="date" 
+                   id="return_date" 
+                   name="return_date" 
+                   value="{{ today }}"
+                   min="{{ today }}">
+            <small>Select today's date for immediate return, or leave as scheduled end date</small>
+        </div>
+        {% else %}
+        <div class="confirmation-box">
+            <h3>Confirm Vehicle Return</h3>
+            <p>Returning vehicle on scheduled date: {{ rental.end_date }}</p>
+        </div>
+        {% endif %}
+        
+        <div class="confirmation-box">
+            <p>Please ensure the vehicle is returned in good condition.</p>
+            <p>You will receive a final invoice after confirming the return.</p>
+        </div>
+        
+        <div class="form-actions">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Confirm Return</button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Helper to format date string from DD-MM-YYYY to YYYY-MM-DD
+function convertDate(dateStr) {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+        return parts[2] + '-' + parts[1] + '-' + parts[0];
+    }
+    return dateStr;
+}
+
+// Set max date for return date picker
+const endDate = "{{ rental.end_date }}";
+const returnDateInput = document.getElementById('return_date');
+if (returnDateInput) {
+    returnDateInput.max = convertDate(endDate);
+}
+</script>
+{% endblock %}

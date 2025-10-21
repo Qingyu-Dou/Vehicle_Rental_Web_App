@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="staff-page">
+    <h1>Analytics Dashboard</h1>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Total Revenue</h3>
+            <p class="stat-number">${{ "%.2f"|format(total_revenue) }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Total Rentals</h3>
+            <p class="stat-number">{{ total_rentals }}</p>
+        </div>
+    </div>
+    
+    <div class="analytics-section">
+        <h2>Vehicle Performance</h2>
+        
+        {% if most_rented %}
+        <div class="info-box">
+            <h3>Most Rented Vehicle</h3>
+            <p><strong>{{ most_rented.get_year() }} {{ most_rented.get_make() }} {{ most_rented.get_model() }}</strong></p>
+            <p>Vehicle ID: {{ most_rented.get_vehicle_id() }}</p>
+            <p>Times Rented: {{ vehicle_counts[most_rented.get_vehicle_id()] }}</p>
+        </div>
+        {% endif %}
+        
+        {% if least_rented and vehicle_counts|length > 1 %}
+        <div class="info-box">
+            <h3>Least Rented Vehicle</h3>
+            <p><strong>{{ least_rented.get_year() }} {{ least_rented.get_make() }} {{ least_rented.get_model() }}</strong></p>
+            <p>Vehicle ID: {{ least_rented.get_vehicle_id() }}</p>
+            <p>Times Rented: {{ vehicle_counts[least_rented.get_vehicle_id()] }}</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    {% if vehicle_counts %}
+    <div class="analytics-section">
+        <h2>Rental Activity by Vehicle</h2>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Vehicle ID</th>
+                    <th>Rental Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vehicle_id, count in vehicle_counts.items()|sort(attribute='1', reverse=True) %}
+                <tr>
+                    <td>{{ vehicle_id }}</td>
+                    <td>{{ count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    <div class="action-buttons">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        <a href="{{ url_for('staff_history') }}" class="btn btn-primary">View All History</a>
+    </div>
+</div>
+{% endblock %}

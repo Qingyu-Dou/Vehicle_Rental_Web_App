@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h1>Staff Dashboard</h1>
+    <p class="user-type">Welcome, {{ user.get_name() }} ({{ user.get_role() }})</p>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Total Vehicles</h3>
+            <p class="stat-number">{{ vehicle_count }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Total Users</h3>
+            <p class="stat-number">{{ user_count }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Total Rentals</h3>
+            <p class="stat-number">{{ rental_count }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Active Rentals</h3>
+            <p class="stat-number">{{ active_count }}</p>
+        </div>
+    </div>
+    
+    <h2>Management Tools</h2>
+    <div class="action-grid">
+        <a href="{{ url_for('staff_users') }}" class="action-card">
+            <h3>Manage Users</h3>
+            <p>Add, view, or remove users</p>
+        </a>
+        <a href="{{ url_for('staff_vehicles') }}" class="action-card">
+            <h3>Manage Vehicles</h3>
+            <p>Add, view, or remove vehicles</p>
+        </a>
+        <a href="{{ url_for('staff_history') }}" class="action-card">
+            <h3>Rental History</h3>
+            <p>View all rental records</p>
+        </a>
+        <a href="{{ url_for('staff_analytics') }}" class="action-card">
+            <h3>Analytics</h3>
+            <p>View reports and statistics</p>
+        </a>
+    </div>
+</div>
+{% endblock %}

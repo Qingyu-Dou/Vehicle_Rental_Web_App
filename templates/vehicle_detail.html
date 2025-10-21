@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block title %}{{ vehicle.get_make() }} {{ vehicle.get_model() }}{% endblock %}
+
+{% block content %}
+<div class="vehicle-detail">
+    <h1>{{ vehicle.get_year() }} {{ vehicle.get_make() }} {{ vehicle.get_model() }}</h1>
+    
+    <div class="detail-container">
+        <div class="detail-image">
+            <img src="{{ url_for('static', filename='images/vehicles/default.jpg') }}" 
+                 alt="{{ vehicle.get_make() }} {{ vehicle.get_model() }}">
+        </div>
+        
+        <div class="detail-info">
+            <h2>Vehicle Information</h2>
+            <table class="info-table">
+                <tr>
+                    <th>Vehicle ID:</th>
+                    <td>{{ vehicle.get_vehicle_id() }}</td>
+                </tr>
+                <tr>
+                    <th>Type:</th>
+                    <td>{{ vehicle.get_vehicle_type() }}</td>
+                </tr>
+                <tr>
+                    <th>Make:</th>
+                    <td>{{ vehicle.get_make() }}</td>
+                </tr>
+                <tr>
+                    <th>Model:</th>
+                    <td>{{ vehicle.get_model() }}</td>
+                </tr>
+                <tr>
+                    <th>Year:</th>
+                    <td>{{ vehicle.get_year() }}</td>
+                </tr>
+                <tr>
+                    <th>Daily Rate:</th>
+                    <td>${{ "%.2f"|format(vehicle.get_daily_rate()) }}</td>
+                </tr>
+                
+                {% if vehicle.get_vehicle_type() == 'Car' %}
+                <tr>
+                    <th>Doors:</th>
+                    <td>{{ vehicle.get_num_doors() }}</td>
+                </tr>
+                <tr>
+                    <th>Fuel Type:</th>
+                    <td>{{ vehicle.get_fuel_type() }}</td>
+                </tr>
+                <tr>
+                    <th>Transmission:</th>
+                    <td>{{ vehicle.get_transmission() }}</td>
+                </tr>
+                {% elif vehicle.get_vehicle_type() == 'Motorbike' %}
+                <tr>
+                    <th>Engine:</th>
+                    <td>{{ vehicle.get_engine_capacity() }}cc</td>
+                </tr>
+                <tr>
+                    <th>Bike Type:</th>
+                    <td>{{ vehicle.get_bike_type() }}</td>
+                </tr>
+                <tr>
+                    <th>ABS:</th>
+                    <td>{% if vehicle.has_abs_braking() %}Yes{% else %}No{% endif %}</td>
+                </tr>
+                {% elif vehicle.get_vehicle_type() == 'Truck' %}
+                <tr>
+                    <th>Load Capacity:</th>
+                    <td>{{ vehicle.get_load_capacity() }} tonnes</td>
+                </tr>
+                <tr>
+                    <th>Truck Type:</th>
+                    <td>{{ vehicle.get_truck_type() }}</td>
+                </tr>
+                <tr>
+                    <th>Hydraulic Lift:</th>
+                    <td>{% if vehicle.has_hydraulic_lift() %}Yes{% else %}No{% endif %}</td>
+                </tr>
+                {% endif %}
+                
+                <tr>
+                    <th>Current Status:</th>
+                    <td>
+                        {% if vehicle.is_currently_rented() %}
+                        <span class="status-rented">Currently Rented</span>
+                        {% else %}
+                        <span class="status-available">Available Now</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+            
+            <!-- Availability Calendar Section -->
+            <div class="availability-section">
+                <h2>Availability Calendar</h2>
+                <div class="availability-calendar">
+                    <div class="calendar-legend">
+                        <span class="legend-item">
+                            <span class="legend-color available"></span> Available
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-color rented"></span> Rented
+                        </span>
+                    </div>
+                    
+                    <div class="calendar-status">
+                        {% if vehicle.is_currently_rented() %}
+                        <div class="status-box rented-box">
+                            <strong>Currently Rented</strong>
+                            <p>This vehicle is currently on rental</p>
+                            <p>Please check back later or choose another vehicle</p>
+                        </div>
+                        {% else %}
+                        <div class="status-box available-box">
+                            <strong>Available for Rent</strong>
+                            <p>This vehicle is available for immediate rental</p>
+                            <p>Book now to reserve this vehicle</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="quick-availability">
+                        <h3>Quick Availability Check</h3>
+                        <form class="availability-form" id="checkAvailability">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Start Date:</label>
+                                    <input type="date" id="check_start" name="start" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>End Date:</label>
+                                    <input type="date" id="check_end" name="end" required>
+                                </div>
+                                <button type="button" onclick="checkAvailability()" class="btn btn-small">Check</button>
+                            </div>
+                        </form>
+                        <div id="availability-result"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-actions">
+                <a href="{{ url_for('vehicles') }}" class="btn btn-secondary">Back to Vehicles</a>
+                {% if not vehicle.is_currently_rented() %}
+                <a href="{{ url_for('rent_vehicle', vehicle_id=vehicle.get_vehicle_id()) }}" 
+                   class="btn btn-primary">Rent This Vehicle</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.availability-section {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.availability-calendar {
+    margin-top: 1rem;
+}
+
+.calendar-legend {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background: white;
+    border-radius: 4px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.legend-color.available {
+    background-color: #28a745;
+}
+
+.legend-color.rented {
+    background-color: #dc3545;
+}
+
+.status-box {
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+    margin: 1rem 0;
+}
+
+.available-box {
+    background-color: #d4edda;
+    border: 2px solid #28a745;
+    color: #155724;
+}
+
+.rented-box {
+    background-color: #f8d7da;
+    border: 2px solid #dc3545;
+    color: #721c24;
+}
+
+.status-box strong {
+    display: block;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+.quick-availability {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 4px;
+}
+
+.quick-availability h3 {
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    color: #2c3e50;
+}
+
+.availability-form .form-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.availability-form .form-group {
+    flex: 1;
+}
+
+.availability-form label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.availability-form input[type="date"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+#availability-result {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 4px;
+    display: none;
+}
+
+#availability-result.show {
+    display: block;
+}
+
+#availability-result.available {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+#availability-result.unavailable {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+</style>
+
+<script>
+// Set minimum date to today
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('check_start').min = today;
+document.getElementById('check_end').min = today;
+
+// Update end date minimum when start date changes
+document.getElementById('check_start').addEventListener('change', function() {
+    document.getElementById('check_end').min = this.value;
+});
+
+function checkAvailability() {
+    const startDate = document.getElementById('check_start').value;
+    const endDate = document.getElementById('check_end').value;
+    const resultDiv = document.getElementById('availability-result');
+    
+    if (!startDate || !endDate) {
+        alert('Please select both start and end dates');
+        return;
+    }
+    
+    // Check if vehicle is currently rented
+    const isRented = {{ 'true' if vehicle.is_currently_rented() else 'false' }};
+    
+    if (isRented) {
+        resultDiv.className = 'show unavailable';
+        resultDiv.innerHTML = '<strong>Not Available</strong><p>This vehicle is currently rented. Please check again later or select another vehicle.</p>';
+    } else {
+        resultDiv.className = 'show available';
+        resultDiv.innerHTML = '<strong>Available!</strong><p>This vehicle is available for your selected dates. Click "Rent This Vehicle" to proceed with booking.</p>';
+    }
+}
+</script>
+{% endblock %}

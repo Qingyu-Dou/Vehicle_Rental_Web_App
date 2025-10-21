@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Rent Vehicle{% endblock %}
+
+{% block content %}
+<div class="rent-form-page">
+    <h1>Rent Vehicle</h1>
+    
+    <div class="vehicle-summary">
+        <h2>{{ vehicle.get_year() }} {{ vehicle.get_make() }} {{ vehicle.get_model() }}</h2>
+        <p>Daily Rate: ${{ "%.2f"|format(vehicle.get_daily_rate()) }}</p>
+    </div>
+    
+    <form method="POST" class="rental-form">
+        <div class="form-group">
+            <label for="start_date">Start Date:</label>
+            <input type="date" id="start_date" name="start_date" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="end_date">End Date:</label>
+            <input type="date" id="end_date" name="end_date" required>
+        </div>
+        
+        <div class="rental-notes">
+            <h3>Rental Information:</h3>
+            <ul>
+                <li>Base rate: ${{ "%.2f"|format(vehicle.get_daily_rate()) }}/day</li>
+                {% if session.user_type == 'Corporate' %}
+                <li>Corporate discount: 15% off all rentals</li>
+                {% elif session.user_type == 'Individual' %}
+                <li>Individual discount: 10% off rentals of 7+ days</li>
+                {% endif %}
+                <li>Final cost will be calculated based on rental duration</li>
+            </ul>
+        </div>
+        
+        <div class="form-actions">
+            <a href="{{ url_for('vehicle_detail', vehicle_id=vehicle.get_vehicle_id()) }}" 
+               class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Confirm Rental</button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Set minimum date to today
+document.getElementById('start_date').min = new Date().toISOString().split('T')[0];
+document.getElementById('end_date').min = new Date().toISOString().split('T')[0];
+
+// Ensure end date is after start date
+document.getElementById('start_date').addEventListener('change', function() {
+    document.getElementById('end_date').min = this.value;
+});
+</script>
+{% endblock %}

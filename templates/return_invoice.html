@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Return Invoice{% endblock %}
+
+{% block content %}
+<div class="invoice-page">
+    <div class="invoice">
+        <h1>Return Invoice</h1>
+        <p class="invoice-number">Record #{{ rental.get_record_id() }}</p>
+        <p class="invoice-date">Return Date: {{ rental.get_updated_at() }}</p>
+        
+        <div class="invoice-section">
+            <h2>Customer Information</h2>
+            <p><strong>Name:</strong> {{ user.get_name() }}</p>
+            <p><strong>ID:</strong> {{ user.get_renter_id() }}</p>
+            <p><strong>Type:</strong> {{ user.get_user_type() }}</p>
+            <p><strong>Contact:</strong> {{ user.get_contact_info() }}</p>
+        </div>
+        
+        <div class="invoice-section">
+            <h2>Vehicle Information</h2>
+            <p><strong>Vehicle:</strong> {{ vehicle.get_year() }} {{ vehicle.get_make() }} {{ vehicle.get_model() }}</p>
+            <p><strong>Vehicle ID:</strong> {{ vehicle.get_vehicle_id() }}</p>
+            <p><strong>Type:</strong> {{ vehicle.get_vehicle_type() }}</p>
+            <p><strong>Daily Rate:</strong> ${{ "%.2f"|format(vehicle.get_daily_rate()) }}</p>
+        </div>
+        
+        <div class="invoice-section">
+            <h2>Rental Details</h2>
+            <p><strong>Start Date:</strong> {{ rental.get_start_date() }}</p>
+            <p><strong>End Date:</strong> {{ rental.get_end_date() }}</p>
+            <p><strong>Actual Days Used:</strong> {{ rental.calculate_duration() }} days</p>
+            <p><strong>Status:</strong> <span class="status-completed">{{ rental.get_status()|upper }}</span></p>
+        </div>
+        
+        <div class="invoice-section">
+            <h2>Final Charges</h2>
+            <table class="invoice-table">
+                <tr>
+                    <td>Base Cost ({{ rental.calculate_duration() }} days × ${{ "%.2f"|format(vehicle.get_daily_rate()) }}):</td>
+                    <td>${{ "%.2f"|format(rental.calculate_duration() * vehicle.get_daily_rate()) }}</td>
+                </tr>
+                {% if rental.get_discount_applied() > 0 %}
+                <tr>
+                    <td>Discount ({{ "%.0f"|format(rental.get_discount_applied() * 100) }}%):</td>
+                    <td>-${{ "%.2f"|format(rental.calculate_duration() * vehicle.get_daily_rate() * rental.get_discount_applied()) }}</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td>Subtotal:</td>
+                    <td>${{ "%.2f"|format(rental.calculate_duration() * vehicle.get_daily_rate() * (1 - rental.get_discount_applied())) }}</td>
+                </tr>
+                <tr>
+                    <td>GST (5%):</td>
+                    <td>${{ "%.2f"|format(rental.calculate_duration() * vehicle.get_daily_rate() * (1 - rental.get_discount_applied()) * 0.05) }}</td>
+                </tr>
+                <tr class="total-row">
+                    <td><strong>Total Charged:</strong></td>
+                    <td><strong>${{ "%.2f"|format(rental.get_rental_cost()) }}</strong></td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="invoice-success">
+            <p class="success-message">✓ Vehicle returned successfully!</p>
+            <p>Thank you for using our vehicle rental service.</p>
+        </div>
+        
+        <div class="invoice-actions">
+            <button onclick="window.print()" class="btn btn-primary">Print Invoice</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+</div>
+
+<style>
+.invoice-success {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    padding: 1rem;
+    border-radius: 4px;
+    margin: 1.5rem 0;
+    text-align: center;
+}
+
+.success-message {
+    color: #155724;
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.early-return-notice {
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.early-return-notice h3 {
+    color: #0c5460;
+    margin-bottom: 0.5rem;
+}
+
+@media print {
+    .navbar, .invoice-actions, footer { display: none; }
+    .invoice { box-shadow: none; }
+}
+</style>
+{% endblock %}

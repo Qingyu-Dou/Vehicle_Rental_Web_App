@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}All Rental History{% endblock %}
+
+{% block content %}
+<div class="staff-page">
+    <h1>All Rental History</h1>
+    
+    {% if records %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Record ID</th>
+                <th>Vehicle ID</th>
+                <th>Renter ID</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Duration</th>
+                <th>Cost</th>
+                <th>Status</th>
+                <th>Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records|reverse %}
+            <tr>
+                <td>{{ record.get_record_id() }}</td>
+                <td>{{ record.get_vehicle_id() }}</td>
+                <td>{{ record.get_renter_id() }}</td>
+                <td>{{ record.get_start_date() }}</td>
+                <td>{{ record.get_end_date() }}</td>
+                <td>{{ record.calculate_duration() }} days</td>
+                <td>${{ "%.2f"|format(record.get_rental_cost()) }}</td>
+                <td><span class="status-{{ record.get_status() }}">{{ record.get_status()|upper }}</span></td>
+                <td>{{ record.get_created_at() }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No rental records found.</p>
+    {% endif %}
+    
+    <div class="action-buttons">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        <a href="{{ url_for('staff_analytics') }}" class="btn btn-primary">View Analytics</a>
+    </div>
+</div>
+{% endblock %}

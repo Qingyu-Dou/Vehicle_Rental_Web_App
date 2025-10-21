@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Rental History{% endblock %}
+
+{% block content %}
+<div class="history-page">
+    <h1>My Rental History</h1>
+    
+    {% if rentals %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Vehicle ID</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Duration</th>
+                <th>Cost</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rental in rentals|reverse %}
+            <tr>
+                <td>{{ rental.vehicle_id }}</td>
+                <td>{{ rental.start_date }}</td>
+                <td>{{ rental.end_date }}</td>
+                <td>{{ rental.duration }} days</td>
+                <td>${{ "%.2f"|format(rental.cost) }}</td>
+                <td><span class="status-{{ rental.status }}">{{ rental.status|upper }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No rental history found.</p>
+    {% endif %}
+    
+    <div class="action-buttons">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        <a href="{{ url_for('vehicles') }}" class="btn btn-primary">Browse Vehicles</a>
+    </div>
+</div>
+{% endblock %}

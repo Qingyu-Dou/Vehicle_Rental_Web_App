@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Users{% endblock %}
+
+{% block content %}
+<div class="staff-page">
+    <h1>Manage Users</h1>
+    
+    <div class="page-actions">
+        <a href="{{ url_for('staff_add_user') }}" class="btn btn-primary">Add New User</a>
+    </div>
+    
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>User ID</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Contact</th>
+                <th>Active Rentals</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.get_renter_id() }}</td>
+                <td>{{ user.get_name() }}</td>
+                <td>{{ user.get_user_type() }}</td>
+                <td>{{ user.get_contact_info() }}</td>
+                <td>{{ user.get_current_rentals()|length }}</td>
+                <td>
+                    {% if user.get_renter_id() != session.user_id and user.get_user_type() != 'Staff' %}
+                    <a href="{{ url_for('staff_delete_user', user_id=user.get_renter_id()) }}" 
+                       class="btn btn-small btn-danger"
+                       onclick="return confirm('Delete this user?')">Delete</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="action-buttons">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}
