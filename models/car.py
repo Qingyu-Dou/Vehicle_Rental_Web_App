@@ -23,7 +23,7 @@ class Car(Vehicle):
                  num_doors: int, fuel_type: str, transmission: str) -> None:
         """
         Initialize a Car object.
-        
+
         Args:
             vehicle_id (str): Unique identifier for the car
             make (str): Manufacturer of the car
@@ -33,7 +33,7 @@ class Car(Vehicle):
             num_doors (int): Number of doors (2, 4, or 5)
             fuel_type (str): Type of fuel (Petrol, Diesel, Electric, Hybrid)
             transmission (str): Transmission type (Manual, Automatic, CVT)
-            
+
         Raises:
             InvalidVehicleDataError: If any car-specific parameter is invalid
         """

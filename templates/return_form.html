@@ -5,42 +5,54 @@
 {% block content %}
 <div class="return-form-page">
     <h1>Return Vehicle</h1>
-    
+
     <div class="rental-summary">
         <h2>{{ vehicle.get_year() }} {{ vehicle.get_make() }} {{ vehicle.get_model() }}</h2>
-        <p><strong>Vehicle ID:</strong> {{ vehicle.get_vehicle_id() }}</p>
-        <p><strong>Rental Period:</strong> {{ rental.start_date }} to {{ rental.end_date }}</p>
-        <p><strong>Original Rental Cost:</strong> ${{ "%.2f"|format(rental.cost) }}</p>
+        <table class="summary-table">
+            <tr>
+                <td>Vehicle ID:</td>
+                <td><strong>{{ vehicle.get_vehicle_id() }}</strong></td>
+            </tr>
+            <tr>
+                <td>Rental Start:</td>
+                <td>{{ rental_record.get_start_date() }}</td>
+            </tr>
+            <tr>
+                <td>Scheduled End:</td>
+                <td>{{ rental_record.get_end_date() }}</td>
+            </tr>
+            <tr>
+                <td>Original Cost:</td>
+                <td><strong>${{ "%.2f"|format(rental_record.get_rental_cost()) }}</strong></td>
+            </tr>
+        </table>
     </div>
-    
-    <form method="POST" class="return-form">
-        {% if can_return_early %}
-        <div class="early-return-notice">
-            <h3>Early Return Available</h3>
-            <p>You can return this vehicle early. You will only be charged for the actual days used.</p>
-        </div>
-        
+
+    <form method="POST" class="return-form" id="returnForm">
         <div class="form-group">
-            <label for="return_date">Actual Return Date:</label>
-            <input type="date" 
-                   id="return_date" 
-                   name="return_date" 
+            <label for="return_date">Select Return Date:</label>
+            <input type="date"
+                   id="return_date"
+                   name="return_date"
                    value="{{ today }}"
-                   min="{{ today }}">
-            <small>Select today's date for immediate return, or leave as scheduled end date</small>
+                   min="{{ today }}"
+                   required>
         </div>
-        {% else %}
-        <div class="confirmation-box">
-            <h3>Confirm Vehicle Return</h3>
-            <p>Returning vehicle on scheduled date: {{ rental.end_date }}</p>
+
+        <div class="return-info-box" id="returnInfo">
+            <!-- JavaScript will populate this -->
         </div>
-        {% endif %}
-        
-        <div class="confirmation-box">
-            <p>Please ensure the vehicle is returned in good condition.</p>
-            <p>You will receive a final invoice after confirming the return.</p>
+
+        <div class="instructions">
+            <h3>Return Instructions</h3>
+            <ul>
+                <li><strong>Early Return:</strong> Return before scheduled date - refund for unused days</li>
+                <li><strong>On-Time Return:</strong> Return on scheduled date - original cost applies</li>
+                <li><strong>Overdue Return:</strong> Return after scheduled date - 150% penalty rate applies</li>
+            </ul>
+            <p class="note">Please ensure the vehicle is returned in good condition.</p>
         </div>
-        
+
         <div class="form-actions">
             <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
             <button type="submit" class="btn btn-primary">Confirm Return</button>
@@ -48,21 +60,279 @@
     </form>
 </div>
 
-<script>
-// Helper to format date string from DD-MM-YYYY to YYYY-MM-DD
-function convertDate(dateStr) {
-    const parts = dateStr.split('-');
-    if (parts.length === 3) {
-        return parts[2] + '-' + parts[1] + '-' + parts[0];
-    }
-    return dateStr;
+<style>
+.return-form-page {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
 }
 
-// Set max date for return date picker
-const endDate = "{{ rental.end_date }}";
-const returnDateInput = document.getElementById('return_date');
-if (returnDateInput) {
-    returnDateInput.max = convertDate(endDate);
+.return-form-page h1 {
+    margin-bottom: 1.5rem;
+    color: #2c3e50;
 }
+
+.rental-summary {
+    background: #f8f9fa;
+    padding: 1.25rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e0e0e0;
+}
+
+.rental-summary h2 {
+    margin: 0 0 1rem 0;
+    color: #2c3e50;
+    font-size: 1.3rem;
+}
+
+.summary-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.summary-table tr {
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.summary-table tr:last-child {
+    border-bottom: none;
+}
+
+.summary-table td {
+    padding: 0.6rem 0;
+    font-size: 0.9rem;
+}
+
+.summary-table td:first-child {
+    color: #666;
+    width: 40%;
+}
+
+.summary-table td:last-child {
+    color: #2c3e50;
+}
+
+.return-form {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.9rem;
+}
+
+.form-group input[type="date"] {
+    width: 100%;
+    padding: 0.65rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+.form-group input[type="date"]:focus {
+    outline: none;
+    border-color: #2c3e50;
+}
+
+.return-info-box {
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+    border-radius: 6px;
+    border: 1px solid;
+    min-height: 60px;
+}
+
+.return-info-box.early {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+}
+
+.return-info-box.normal {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}
+
+.return-info-box.overdue {
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+    color: #856404;
+}
+
+.return-info-box h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+}
+
+.return-info-box p {
+    margin: 0.25rem 0;
+    font-size: 0.9rem;
+}
+
+.instructions {
+    background: #f8f9fa;
+    padding: 1.25rem;
+    border-radius: 6px;
+    margin-bottom: 1.25rem;
+    border: 1px solid #e0e0e0;
+}
+
+.instructions h3 {
+    margin: 0 0 0.75rem 0;
+    color: #2c3e50;
+    font-size: 1rem;
+}
+
+.instructions ul {
+    margin: 0 0 0.75rem 0;
+    padding-left: 1.5rem;
+}
+
+.instructions li {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.note {
+    margin: 0.75rem 0 0 0;
+    font-size: 0.85rem;
+    color: #777;
+    font-style: italic;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.btn {
+    flex: 1;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: #2c3e50;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #1a252f;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .return-form-page {
+        padding: 1rem;
+    }
+
+    .return-form {
+        padding: 1rem;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+// Parse scheduled end date
+const scheduledEndStr = "{{ rental_record.get_end_date() }}"; // DD-MM-YYYY
+const parts = scheduledEndStr.split('-');
+const scheduledEnd = new Date(parts[2], parts[1] - 1, parts[0]);
+
+// Daily rate and cost info
+const dailyRate = {{ vehicle.get_daily_rate() }};
+const originalCost = {{ rental_record.get_rental_cost() }};
+const discount = {{ rental_record.get_discount_applied() }};
+
+function updateReturnInfo() {
+    const returnDateInput = document.getElementById('return_date');
+    const returnInfo = document.getElementById('returnInfo');
+
+    if (!returnDateInput.value) {
+        returnInfo.innerHTML = '';
+        returnInfo.className = 'return-info-box';
+        return;
+    }
+
+    const returnDate = new Date(returnDateInput.value);
+    const scheduledEndNormalized = new Date(scheduledEnd);
+    scheduledEndNormalized.setHours(0, 0, 0, 0);
+    returnDate.setHours(0, 0, 0, 0);
+
+    let infoHTML = '';
+    let infoClass = 'return-info-box';
+
+    if (returnDate < scheduledEndNormalized) {
+        // Early Return
+        infoClass += ' early';
+        infoHTML = `
+            <h4>Early Return</h4>
+            <p>You will only be charged for the actual days used.</p>
+            <p>A refund will be issued for unused days.</p>
+        `;
+    } else if (returnDate > scheduledEndNormalized) {
+        // Overdue Return
+        const overdueDays = Math.floor((returnDate - scheduledEndNormalized) / (1000 * 60 * 60 * 24));
+        const penalty = overdueDays * dailyRate * 1.5;
+        infoClass += ' overdue';
+        infoHTML = `
+            <h4>Overdue Return</h4>
+            <p><strong>Warning:</strong> ${overdueDays} day(s) overdue</p>
+            <p>Penalty (150% rate): $${penalty.toFixed(2)}</p>
+            <p>Additional charge will be applied.</p>
+        `;
+    } else {
+        // Normal Return
+        infoClass += ' normal';
+        infoHTML = `
+            <h4>On-Time Return</h4>
+            <p>Returning as scheduled.</p>
+            <p>Original cost applies: $${originalCost.toFixed(2)}</p>
+        `;
+    }
+
+    returnInfo.className = infoClass;
+    returnInfo.innerHTML = infoHTML;
+}
+
+// Update info when date changes
+document.getElementById('return_date').addEventListener('change', updateReturnInfo);
+
+// Initialize on page load
+updateReturnInfo();
 </script>
 {% endblock %}

@@ -24,10 +24,13 @@ class RentalRecord:
     
     def __init__(self, record_id: str, vehicle_id: str, renter_id: str,
                  start_date: str, end_date: str, rental_cost: float,
-                 status: str = 'pending', discount_applied: float = 0.0) -> None:
+                 status: str = 'pending', discount_applied: float = 0.0,
+                 actual_return_date: Optional[str] = None,
+                 return_type: Optional[str] = None,
+                 final_cost: Optional[float] = None) -> None:
         """
         Initialize a RentalRecord object.
-        
+
         Args:
             record_id (str): Unique identifier for this rental record
             vehicle_id (str): ID of the rented vehicle
@@ -37,6 +40,9 @@ class RentalRecord:
             rental_cost (float): Total rental cost after discounts
             status (str): Rental status (pending, active, completed, cancelled, overdue)
             discount_applied (float): Discount percentage applied (0.0 to 1.0)
+            actual_return_date (str, optional): Actual return date (DD-MM-YYYY format)
+            return_type (str, optional): Return type (normal, early, overdue)
+            final_cost (float, optional): Final cost after adjustments for early/overdue return
         """
         self.__record_id = record_id
         self.__vehicle_id = vehicle_id
@@ -46,6 +52,9 @@ class RentalRecord:
         self.__rental_cost = rental_cost
         self.__status = self._validate_status(status)
         self.__discount_applied = discount_applied
+        self.__actual_return_date = actual_return_date
+        self.__return_type = return_type
+        self.__final_cost = final_cost if final_cost is not None else rental_cost
         self.__created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.__updated_at = self.__created_at
     
@@ -96,7 +105,19 @@ class RentalRecord:
     def get_updated_at(self) -> str:
         """Get the last update timestamp."""
         return self.__updated_at
-    
+
+    def get_actual_return_date(self) -> Optional[str]:
+        """Get the actual return date."""
+        return self.__actual_return_date
+
+    def get_return_type(self) -> Optional[str]:
+        """Get the return type (normal, early, overdue)."""
+        return self.__return_type
+
+    def get_final_cost(self) -> float:
+        """Get the final cost after return adjustments."""
+        return self.__final_cost
+
     # Setter methods
     def set_status(self, status: str) -> None:
         """Update the rental status."""
@@ -143,11 +164,25 @@ class RentalRecord:
     def mark_as_cancelled(self) -> None:
         """Mark the rental as cancelled."""
         self.set_status('cancelled')
-    
+
+    def process_return(self, actual_return_date: str, final_cost: float, return_type: str) -> None:
+        """
+        Process vehicle return and update record.
+
+        Args:
+            actual_return_date (str): Actual return date (DD-MM-YYYY)
+            final_cost (float): Final cost after early/overdue adjustments
+            return_type (str): Return type (normal, early, overdue)
+        """
+        self.__actual_return_date = actual_return_date
+        self.__final_cost = round(final_cost, 2)
+        self.__return_type = return_type.lower()
+        self.mark_as_completed()
+
     def calculate_duration(self) -> int:
         """
-        Calculate the rental duration in days.
-        
+        Calculate the scheduled rental duration in days.
+
         Returns:
             int: Number of days in the rental period
         """
@@ -157,7 +192,24 @@ class RentalRecord:
             return (end - start).days + 1
         except ValueError:
             return 0
-    
+
+    def calculate_actual_duration(self) -> int:
+        """
+        Calculate the actual rental duration in days (from start to actual return).
+
+        Returns:
+            int: Number of days actually rented, or 0 if not yet returned
+        """
+        if not self.__actual_return_date:
+            return 0
+
+        try:
+            start = datetime.strptime(self.__start_date, "%d-%m-%Y")
+            actual_end = datetime.strptime(self.__actual_return_date, "%d-%m-%Y")
+            return (actual_end - start).days + 1
+        except ValueError:
+            return 0
+
     def check_if_overdue(self) -> bool:
         """
         Check if the rental should be marked as overdue based on current date.
@@ -183,7 +235,7 @@ class RentalRecord:
     def to_dict(self) -> dict:
         """
         Convert rental record to dictionary format.
-        
+
         Returns:
             dict: Dictionary representation of the rental record
         """
@@ -197,6 +249,9 @@ class RentalRecord:
             'status': self.__status,
             'discount_applied': self.__discount_applied,
             'duration': self.calculate_duration(),
+            'actual_return_date': self.__actual_return_date,
+            'return_type': self.__return_type,
+            'final_cost': self.__final_cost,
             'created_at': self.__created_at,
             'updated_at': self.__updated_at
         }

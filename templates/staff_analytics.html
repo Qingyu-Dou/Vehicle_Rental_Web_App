@@ -5,65 +5,339 @@
 {% block content %}
 <div class="staff-page">
     <h1>Analytics Dashboard</h1>
-    
-    <div class="stats-grid">
-        <div class="stat-card">
-            <h3>Total Revenue</h3>
-            <p class="stat-number">${{ "%.2f"|format(total_revenue) }}</p>
-        </div>
-        <div class="stat-card">
-            <h3>Total Rentals</h3>
-            <p class="stat-number">{{ total_rentals }}</p>
+
+    <!-- Most/Least Rented Vehicles -->
+    <h2>Most/Least Rented Vehicles</h2>
+        <div class="top-grid">
+            <!-- Top 5 Most Rented -->
+            <div class="top-card">
+                <h3>Top 5 Most Rented</h3>
+                <div class="top-list">
+                    {% for vehicle, count in top_5_vehicles %}
+                    {% if vehicle %}
+                    <div class="top-item">
+                        <div class="top-rank">{{ loop.index }}</div>
+                        <div class="top-info">
+                            <p class="top-name">{{ vehicle.get_make() }} {{ vehicle.get_model() }}</p>
+                            <p class="top-detail">{{ vehicle.get_vehicle_id() }} - {{ vehicle.get_vehicle_type() }}</p>
+                        </div>
+                        <div class="top-value">{{ count }} rentals</div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Bottom 5 Least Rented -->
+            <div class="top-card">
+                <h3>Bottom 5 Least Rented</h3>
+                <div class="top-list">
+                    {% for vehicle_id, count in (vehicle_counts.items()|sort(attribute='1')|list)[:5] %}
+                    {% set vehicle = None %}
+                    {% for v in top_5_vehicles %}
+                        {% if v[0] and v[0].get_vehicle_id() == vehicle_id %}
+                            {% set vehicle = v[0] %}
+                        {% endif %}
+                    {% endfor %}
+                    {% if not vehicle %}
+                        {% for record in [] %}{% endfor %}
+                        {% set ns = namespace(found=false) %}
+                        {% for v in top_5_revenue_vehicles %}
+                            {% if v[0] and v[0].get_vehicle_id() == vehicle_id and not ns.found %}
+                                {% set vehicle = v[0] %}
+                                {% set ns.found = true %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    <div class="top-item">
+                        <div class="top-rank least">{{ loop.index }}</div>
+                        <div class="top-info">
+                            <p class="top-name">{{ vehicle_id }}</p>
+                            <p class="top-detail">-</p>
+                        </div>
+                        <div class="top-value">{{ count }} rentals</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
-    
-    <div class="analytics-section">
-        <h2>Vehicle Performance</h2>
-        
-        {% if most_rented %}
-        <div class="info-box">
-            <h3>Most Rented Vehicle</h3>
-            <p><strong>{{ most_rented.get_year() }} {{ most_rented.get_make() }} {{ most_rented.get_model() }}</strong></p>
-            <p>Vehicle ID: {{ most_rented.get_vehicle_id() }}</p>
-            <p>Times Rented: {{ vehicle_counts[most_rented.get_vehicle_id()] }}</p>
+
+    <!-- Revenue Summaries -->
+    <div class="summary-section">
+        <h2>Revenue Summaries</h2>
+        <div class="summary-grid">
+            <!-- By Vehicle Type -->
+            <div class="summary-card">
+                <h3>By Vehicle Type</h3>
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Rentals</th>
+                            <th>Revenue</th>
+                            <th>Avg/Rental</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vtype in ['Car', 'Motorbike', 'Truck'] %}
+                        <tr>
+                            <td><strong>{{ vtype }}</strong></td>
+                            <td>{{ rentals_by_vehicle_type[vtype] }}</td>
+                            <td>${{ "%.2f"|format(revenue_by_vehicle_type[vtype]) }}</td>
+                            <td>
+                                {% if rentals_by_vehicle_type[vtype] > 0 %}
+                                ${{ "%.2f"|format(revenue_by_vehicle_type[vtype] / rentals_by_vehicle_type[vtype]) }}
+                                {% else %}
+                                $0.00
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- By User Type -->
+            <div class="summary-card">
+                <h3>By User Type</h3>
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Rentals</th>
+                            <th>Revenue</th>
+                            <th>Avg/Rental</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for utype in ['Individual', 'Corporate', 'Staff'] %}
+                        <tr>
+                            <td><strong>{{ utype }}</strong></td>
+                            <td>{{ rentals_by_user_type[utype] }}</td>
+                            <td>${{ "%.2f"|format(revenue_by_user_type[utype]) }}</td>
+                            <td>
+                                {% if rentals_by_user_type[utype] > 0 %}
+                                ${{ "%.2f"|format(revenue_by_user_type[utype] / rentals_by_user_type[utype]) }}
+                                {% else %}
+                                $0.00
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-        {% endif %}
-        
-        {% if least_rented and vehicle_counts|length > 1 %}
-        <div class="info-box">
-            <h3>Least Rented Vehicle</h3>
-            <p><strong>{{ least_rented.get_year() }} {{ least_rented.get_make() }} {{ least_rented.get_model() }}</strong></p>
-            <p>Vehicle ID: {{ least_rented.get_vehicle_id() }}</p>
-            <p>Times Rented: {{ vehicle_counts[least_rented.get_vehicle_id()] }}</p>
-        </div>
-        {% endif %}
     </div>
-    
-    {% if vehicle_counts %}
-    <div class="analytics-section">
-        <h2>Rental Activity by Vehicle</h2>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Vehicle ID</th>
-                    <th>Rental Count</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for vehicle_id, count in vehicle_counts.items()|sort(attribute='1', reverse=True) %}
-                <tr>
-                    <td>{{ vehicle_id }}</td>
-                    <td>{{ count }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% endif %}
-    
+
+    <!-- User Activity Logs -->
+    <h2>User Activity Logs</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>User</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in (records|reverse|list)[:10] %}
+            {% set renter = None %}
+            {% for user in renters %}
+                {% if user.get_renter_id() == record.get_renter_id() %}
+                    {% set renter = user %}
+                {% endif %}
+            {% endfor %}
+            <tr>
+                <td>{{ record.get_created_at() }}</td>
+                <td>{{ renter.get_name() if renter else record.get_renter_id() }} ({{ renter.get_user_type() if renter else 'Unknown' }})</td>
+                <td>
+                    {% if record.get_status() == 'completed' %}
+                        {% if record.get_return_type() == 'early' %}
+                            Returned vehicle {{ record.get_vehicle_id() }} early
+                        {% elif record.get_return_type() == 'overdue' %}
+                            Returned vehicle {{ record.get_vehicle_id() }} overdue
+                        {% else %}
+                            Returned vehicle {{ record.get_vehicle_id() }} on time
+                        {% endif %}
+                    {% elif record.get_status() == 'active' %}
+                        Rented vehicle {{ record.get_vehicle_id() }} ({{ record.get_start_date() }} - {{ record.get_end_date() }})
+                    {% else %}
+                        {{ record.get_status()|upper }}: Vehicle {{ record.get_vehicle_id() }}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
     <div class="action-buttons">
+        <a href="{{ url_for('staff_history') }}" class="btn btn-primary">View All Rental History</a>
         <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
-        <a href="{{ url_for('staff_history') }}" class="btn btn-primary">View All History</a>
     </div>
 </div>
+
+<style>
+.staff-page h2 {
+    color: #2c3e50;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #34495e;
+    padding-bottom: 0.5rem;
+}
+
+.top-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.top-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.top-card h3 {
+    margin: 0 0 1rem 0;
+    color: #34495e;
+    font-size: 1rem;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 0.5rem;
+}
+
+.top-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.top-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.top-rank {
+    width: 35px;
+    height: 35px;
+    background-color: #3498db;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.top-rank.least {
+    background-color: #e74c3c;
+}
+
+.top-info {
+    flex: 1;
+}
+
+.top-name {
+    margin: 0 0 0.25rem 0;
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.95rem;
+}
+
+.top-detail {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #7f8c8d;
+}
+
+.top-value {
+    font-weight: 700;
+    color: #2c3e50;
+    font-size: 1rem;
+}
+
+.summary-section {
+    margin-bottom: 2rem;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.summary-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.summary-card h3 {
+    margin: 0 0 1rem 0;
+    color: #34495e;
+    font-size: 1rem;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 0.5rem;
+}
+
+.summary-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.summary-table thead {
+    background: #ecf0f1;
+}
+
+.summary-table th {
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #2c3e50;
+    text-transform: uppercase;
+}
+
+.summary-table tbody tr {
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.summary-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.summary-table td {
+    padding: 0.75rem;
+    color: #2c3e50;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .top-grid,
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+}
+</style>
 {% endblock %}

@@ -39,7 +39,7 @@ Open your browser and go to: **http://127.0.0.1:5000**
 - ✅ Browse and search vehicles (by type, brand, price)
 - ✅ View vehicle details with **availability calendar** 
 - ✅ Rent vehicles
-- ✅ Return vehicles **early return supported**
+- ✅ Return vehicles **early and late return supported**
 - ✅ View rental history
 - ✅ Generate invoices
 - ✅ Automatic discount calculation

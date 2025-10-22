@@ -3,316 +3,720 @@
 {% block title %}{{ vehicle.get_make() }} {{ vehicle.get_model() }}{% endblock %}
 
 {% block content %}
-<div class="vehicle-detail">
-    <h1>{{ vehicle.get_year() }} {{ vehicle.get_make() }} {{ vehicle.get_model() }}</h1>
-    
-    <div class="detail-container">
-        <div class="detail-image">
-            <img src="{{ url_for('static', filename='images/vehicles/default.jpg') }}" 
-                 alt="{{ vehicle.get_make() }} {{ vehicle.get_model() }}">
+<div class="vehicle-detail-page">
+    <div class="page-header">
+        <h1>{{ vehicle.get_year() }} {{ vehicle.get_make() }} {{ vehicle.get_model() }}</h1>
+        <p class="vehicle-type-badge">{{ vehicle.get_vehicle_type() }}</p>
+    </div>
+
+    <div class="content-wrapper">
+        <!-- Left Column: Image and Basic Info -->
+        <div class="left-column">
+            <div class="vehicle-image-card">
+                <img src="{{ url_for('static', filename='images/vehicles/default.jpg') }}"
+                     alt="{{ vehicle.get_make() }} {{ vehicle.get_model() }}">
+            </div>
+
+            <div class="pricing-card">
+                <h3>Pricing</h3>
+                <div class="price-display">
+                    <span class="price-amount">${{ "%.2f"|format(vehicle.get_daily_rate()) }}</span>
+                    <span class="price-label">per day</span>
+                </div>
+            </div>
         </div>
-        
-        <div class="detail-info">
-            <h2>Vehicle Information</h2>
-            <table class="info-table">
+
+        <!-- Right Column: Details and Calendar -->
+        <div class="right-column">
+            <div class="info-card">
+                <h2>Vehicle Information</h2>
+                <table class="info-table">
                 <tr>
-                    <th>Vehicle ID:</th>
+                    <th>ID</th>
                     <td>{{ vehicle.get_vehicle_id() }}</td>
                 </tr>
                 <tr>
-                    <th>Type:</th>
-                    <td>{{ vehicle.get_vehicle_type() }}</td>
-                </tr>
-                <tr>
-                    <th>Make:</th>
-                    <td>{{ vehicle.get_make() }}</td>
-                </tr>
-                <tr>
-                    <th>Model:</th>
-                    <td>{{ vehicle.get_model() }}</td>
-                </tr>
-                <tr>
-                    <th>Year:</th>
+                    <th>Year</th>
                     <td>{{ vehicle.get_year() }}</td>
                 </tr>
-                <tr>
-                    <th>Daily Rate:</th>
-                    <td>${{ "%.2f"|format(vehicle.get_daily_rate()) }}</td>
-                </tr>
-                
+
                 {% if vehicle.get_vehicle_type() == 'Car' %}
                 <tr>
-                    <th>Doors:</th>
+                    <th>Doors</th>
                     <td>{{ vehicle.get_num_doors() }}</td>
                 </tr>
                 <tr>
-                    <th>Fuel Type:</th>
+                    <th>Fuel Type</th>
                     <td>{{ vehicle.get_fuel_type() }}</td>
                 </tr>
                 <tr>
-                    <th>Transmission:</th>
+                    <th>Transmission</th>
                     <td>{{ vehicle.get_transmission() }}</td>
                 </tr>
                 {% elif vehicle.get_vehicle_type() == 'Motorbike' %}
                 <tr>
-                    <th>Engine:</th>
+                    <th>Engine</th>
                     <td>{{ vehicle.get_engine_capacity() }}cc</td>
                 </tr>
                 <tr>
-                    <th>Bike Type:</th>
+                    <th>Type</th>
                     <td>{{ vehicle.get_bike_type() }}</td>
                 </tr>
                 <tr>
-                    <th>ABS:</th>
+                    <th>ABS</th>
                     <td>{% if vehicle.has_abs_braking() %}Yes{% else %}No{% endif %}</td>
                 </tr>
                 {% elif vehicle.get_vehicle_type() == 'Truck' %}
                 <tr>
-                    <th>Load Capacity:</th>
+                    <th>Load Capacity</th>
                     <td>{{ vehicle.get_load_capacity() }} tonnes</td>
                 </tr>
                 <tr>
-                    <th>Truck Type:</th>
+                    <th>Type</th>
                     <td>{{ vehicle.get_truck_type() }}</td>
                 </tr>
                 <tr>
-                    <th>Hydraulic Lift:</th>
+                    <th>Hydraulic Lift</th>
                     <td>{% if vehicle.has_hydraulic_lift() %}Yes{% else %}No{% endif %}</td>
                 </tr>
                 {% endif %}
-                
-                <tr>
-                    <th>Current Status:</th>
-                    <td>
-                        {% if vehicle.is_currently_rented() %}
-                        <span class="status-rented">Currently Rented</span>
-                        {% else %}
-                        <span class="status-available">Available Now</span>
-                        {% endif %}
-                    </td>
-                </tr>
-            </table>
-            
-            <!-- Availability Calendar Section -->
-            <div class="availability-section">
-                <h2>Availability Calendar</h2>
-                <div class="availability-calendar">
-                    <div class="calendar-legend">
-                        <span class="legend-item">
-                            <span class="legend-color available"></span> Available
-                        </span>
-                        <span class="legend-item">
-                            <span class="legend-color rented"></span> Rented
-                        </span>
+                </table>
+            </div>
+
+            <!-- Availability Calendar -->
+            <div class="calendar-card">
+                <div class="calendar-header">
+                    <h2>Availability Calendar</h2>
+                </div>
+
+                <!-- Calendar Controls -->
+                <div class="calendar-controls">
+                    <button id="prevMonth" class="calendar-nav-btn">
+                        <span>‹</span>
+                    </button>
+                    <div class="calendar-current-month" id="currentMonth"></div>
+                    <button id="nextMonth" class="calendar-nav-btn">
+                        <span>›</span>
+                    </button>
+                </div>
+
+                <!-- Legend -->
+                <div class="calendar-legend">
+                    <div class="legend-item">
+                        <span class="legend-dot available"></span>
+                        <span>Available</span>
                     </div>
-                    
-                    <div class="calendar-status">
-                        {% if vehicle.is_currently_rented() %}
-                        <div class="status-box rented-box">
-                            <strong>Currently Rented</strong>
-                            <p>This vehicle is currently on rental</p>
-                            <p>Please check back later or choose another vehicle</p>
-                        </div>
-                        {% else %}
-                        <div class="status-box available-box">
-                            <strong>Available for Rent</strong>
-                            <p>This vehicle is available for immediate rental</p>
-                            <p>Book now to reserve this vehicle</p>
-                        </div>
-                        {% endif %}
+                    <div class="legend-item">
+                        <span class="legend-dot rented"></span>
+                        <span>Rented</span>
                     </div>
-                    
-                    <div class="quick-availability">
-                        <h3>Quick Availability Check</h3>
-                        <form class="availability-form" id="checkAvailability">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Start Date:</label>
-                                    <input type="date" id="check_start" name="start" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>End Date:</label>
-                                    <input type="date" id="check_end" name="end" required>
-                                </div>
-                                <button type="button" onclick="checkAvailability()" class="btn btn-small">Check</button>
-                            </div>
-                        </form>
-                        <div id="availability-result"></div>
+                    <div class="legend-item">
+                        <span class="legend-dot unavailable"></span>
+                        <span>Unavailable</span>
+                    </div>
+                </div>
+
+                <!-- Calendar Grid -->
+                <div class="calendar-grid">
+                    <div class="calendar-weekdays">
+                        <div class="weekday">Sun</div>
+                        <div class="weekday">Mon</div>
+                        <div class="weekday">Tue</div>
+                        <div class="weekday">Wed</div>
+                        <div class="weekday">Thu</div>
+                        <div class="weekday">Fri</div>
+                        <div class="weekday">Sat</div>
+                    </div>
+                    <div class="calendar-days" id="calendarDays">
+                        <!-- Days will be generated by JavaScript -->
                     </div>
                 </div>
             </div>
-            
-            <div class="detail-actions">
-                <a href="{{ url_for('vehicles') }}" class="btn btn-secondary">Back to Vehicles</a>
-                {% if not vehicle.is_currently_rented() %}
-                <a href="{{ url_for('rent_vehicle', vehicle_id=vehicle.get_vehicle_id()) }}" 
-                   class="btn btn-primary">Rent This Vehicle</a>
-                {% endif %}
+
             </div>
         </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons-fixed">
+        <a href="{{ url_for('vehicles') }}" class="btn btn-back">Back to Vehicles</a>
+        <a href="{{ url_for('rent_vehicle', vehicle_id=vehicle.get_vehicle_id()) }}"
+           class="btn btn-rent">Rent This Vehicle</a>
     </div>
 </div>
 
 <style>
-.availability-section {
-    margin-top: 2rem;
+/* Page Layout */
+.vehicle-detail-page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 1rem 5rem 1rem;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.page-header h1 {
+    margin: 0 0 0.75rem 0;
+    color: #2c3e50;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.vehicle-type-badge {
+    display: inline-block;
+    margin: 0;
+    padding: 0.4rem 1.2rem;
+    background: #3498db;
+    color: white;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.content-wrapper {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 2rem;
+}
+
+/* Left Column */
+.left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.vehicle-image-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.vehicle-image-card img {
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+    display: block;
+}
+
+.pricing-card {
+    background: white;
     padding: 1.5rem;
-    background-color: #f8f9fa;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.pricing-card h3 {
+    margin: 0 0 1rem 0;
+    color: #666;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.price-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.price-amount {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    line-height: 1;
+}
+
+.price-label {
+    margin-top: 0.5rem;
+    color: #999;
+    font-size: 0.9rem;
+}
+
+/* Right Column */
+.right-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.info-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.info-card h2 {
+    margin: 0 0 1.5rem 0;
+    color: #2c3e50;
+    font-size: 1.3rem;
+    font-weight: 600;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.info-table tr {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.info-table tr:last-child {
+    border-bottom: none;
+}
+
+.info-table th {
+    text-align: left;
+    padding: 0.9rem 1rem;
+    font-weight: 600;
+    color: #666;
+    width: 40%;
+    font-size: 0.95rem;
+}
+
+.info-table td {
+    padding: 0.9rem 1rem;
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+/* Calendar Card */
+.calendar-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.calendar-header {
+    margin-bottom: 1.5rem;
+}
+
+.calendar-header h2 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.3rem;
+    font-weight: 600;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+/* Calendar Controls */
+.calendar-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background: white;
     border-radius: 8px;
+    border: 1px solid #e0e0e0;
 }
 
-.availability-calendar {
-    margin-top: 1rem;
+.calendar-nav-btn {
+    background: white;
+    border: 1px solid #ddd;
+    color: #555;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
 }
 
+.calendar-nav-btn:hover {
+    background: #f5f5f5;
+    border-color: #999;
+}
+
+.calendar-nav-btn span {
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+.calendar-current-month {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+/* Legend */
 .calendar-legend {
     display: flex;
-    gap: 1.5rem;
+    justify-content: center;
+    gap: 2rem;
     margin-bottom: 1rem;
-    padding: 0.5rem;
+    padding: 0.75rem;
     background: white;
-    border-radius: 4px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
 }
 
 .legend-item {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.9rem;
+    color: #555;
+    font-weight: 500;
+    font-size: 0.85rem;
 }
 
-.legend-color {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
+.legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
     border: 1px solid #ddd;
 }
 
-.legend-color.available {
+.legend-dot.available {
     background-color: #28a745;
 }
 
-.legend-color.rented {
+.legend-dot.rented {
     background-color: #dc3545;
 }
 
-.status-box {
-    padding: 1.5rem;
-    border-radius: 8px;
-    text-align: center;
-    margin: 1rem 0;
+.legend-dot.unavailable {
+    background-color: #6c757d;
 }
 
-.available-box {
-    background-color: #d4edda;
-    border: 2px solid #28a745;
-    color: #155724;
-}
-
-.rented-box {
-    background-color: #f8d7da;
-    border: 2px solid #dc3545;
-    color: #721c24;
-}
-
-.status-box strong {
-    display: block;
-    font-size: 1.2rem;
-    margin-bottom: 0.5rem;
-}
-
-.quick-availability {
-    margin-top: 1.5rem;
-    padding: 1rem;
+/* Calendar Grid */
+.calendar-grid {
     background: white;
-    border-radius: 4px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
 }
 
-.quick-availability h3 {
-    margin-bottom: 1rem;
-    font-size: 1rem;
-    color: #2c3e50;
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: #2c3e50;
 }
 
-.availability-form .form-row {
+.weekday {
+    padding: 0.75rem;
+    text-align: center;
+    font-weight: 600;
+    color: white;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background-color: #e0e0e0;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
     display: flex;
-    gap: 1rem;
-    align-items: flex-end;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    transition: all 0.15s ease;
+    position: relative;
+    min-height: 60px;
 }
 
-.availability-form .form-group {
-    flex: 1;
+.calendar-day.other-month {
+    background-color: #fafafa;
+    color: #ccc;
 }
 
-.availability-form label {
-    display: block;
-    margin-bottom: 0.3rem;
-    font-size: 0.9rem;
-    font-weight: bold;
-}
-
-.availability-form input[type="date"] {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-#availability-result {
-    margin-top: 1rem;
-    padding: 1rem;
-    border-radius: 4px;
-    display: none;
-}
-
-#availability-result.show {
-    display: block;
-}
-
-#availability-result.available {
+.calendar-day.available {
     background-color: #d4edda;
     color: #155724;
-    border: 1px solid #c3e6cb;
+    font-weight: 600;
 }
 
-#availability-result.unavailable {
+.calendar-day.rented {
     background-color: #f8d7da;
     color: #721c24;
-    border: 1px solid #f5c6cb;
+    font-weight: 600;
+}
+
+.calendar-day.unavailable {
+    background-color: #e2e3e5;
+    color: #6c757d;
+}
+
+.day-number {
+    font-size: 1rem;
+}
+
+/* Action Buttons */
+.action-buttons-fixed {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    padding: 1rem;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    z-index: 100;
+}
+
+.btn-back {
+    padding: 0.85rem 2rem;
+    background: white;
+    color: #2c3e50;
+    border: 2px solid #2c3e50;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.btn-back:hover {
+    background: #2c3e50;
+    color: white;
+}
+
+.btn-rent {
+    padding: 0.85rem 3rem;
+    background: #3498db;
+    color: white;
+    border: 2px solid #3498db;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.btn-rent:hover {
+    background: #2980b9;
+    border-color: #2980b9;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .content-wrapper {
+        grid-template-columns: 1fr;
+    }
+
+    .left-column {
+        grid-row: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .vehicle-detail-page {
+        padding: 1rem 1rem 5rem 1rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .vehicle-image-card img {
+        height: 250px;
+    }
+
+    .info-card, .calendar-card {
+        padding: 1.5rem;
+    }
+
+    .calendar-controls {
+        padding: 0.5rem;
+    }
+
+    .calendar-current-month {
+        font-size: 1rem;
+    }
+
+    .calendar-legend {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .weekday {
+        font-size: 0.7rem;
+        padding: 0.5rem 0.25rem;
+    }
+
+    .calendar-day {
+        min-height: 45px;
+    }
+
+    .day-number {
+        font-size: 0.85rem;
+    }
+
+    .action-buttons-fixed {
+        flex-direction: column;
+    }
+
+    .btn-back, .btn-rent {
+        width: 100%;
+        text-align: center;
+    }
 }
 </style>
 
 <script>
-// Set minimum date to today
-const today = new Date().toISOString().split('T')[0];
-document.getElementById('check_start').min = today;
-document.getElementById('check_end').min = today;
+// Rental data from backend (DD-MM-YYYY format)
+const rentalRecords = [
+    {% for record in rental_records %}
+    {
+        startDate: '{{ record.get_start_date() }}',
+        endDate: '{{ record.get_end_date() }}',
+        status: '{{ record.get_status() }}'
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
 
-// Update end date minimum when start date changes
-document.getElementById('check_start').addEventListener('change', function() {
-    document.getElementById('check_end').min = this.value;
-});
+// Current view state
+let currentYear = new Date().getFullYear();
+let currentMonth = new Date().getMonth();
 
-function checkAvailability() {
-    const startDate = document.getElementById('check_start').value;
-    const endDate = document.getElementById('check_end').value;
-    const resultDiv = document.getElementById('availability-result');
-    
-    if (!startDate || !endDate) {
-        alert('Please select both start and end dates');
-        return;
+// Parse DD-MM-YYYY to Date object
+function parseDate(dateStr) {
+    const parts = dateStr.split('-');
+    return new Date(parts[2], parts[1] - 1, parts[0]);
+}
+
+// Check if a date is rented
+// Rental period: start date to end date (both inclusive)
+function isDateRented(date) {
+    const dateTime = date.getTime();
+
+    for (const record of rentalRecords) {
+        if (record.status !== 'active') continue;
+
+        const startDate = parseDate(record.startDate);
+        const endDate = parseDate(record.endDate);
+
+        // Both start and end dates are rented (closed interval [start, end])
+        if (dateTime >= startDate.getTime() && dateTime <= endDate.getTime()) {
+            return true;
+        }
     }
-    
-    // Check if vehicle is currently rented
-    const isRented = {{ 'true' if vehicle.is_currently_rented() else 'false' }};
-    
-    if (isRented) {
-        resultDiv.className = 'show unavailable';
-        resultDiv.innerHTML = '<strong>Not Available</strong><p>This vehicle is currently rented. Please check again later or select another vehicle.</p>';
-    } else {
-        resultDiv.className = 'show available';
-        resultDiv.innerHTML = '<strong>Available!</strong><p>This vehicle is available for your selected dates. Click "Rent This Vehicle" to proceed with booking.</p>';
+    return false;
+}
+
+// Determine date status
+function getDateStatus(date, isOtherMonth) {
+    if (isOtherMonth) return 'other-month';
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Past dates (before today) are unavailable
+    if (date < today) {
+        return 'unavailable';
+    }
+
+    // Check if rented
+    if (isDateRented(date)) {
+        return 'rented';
+    }
+
+    // Future dates that are not rented are available
+    return 'available';
+}
+
+// Generate calendar for current month
+function generateCalendar() {
+    const calendarDays = document.getElementById('calendarDays');
+    const currentMonthElement = document.getElementById('currentMonth');
+
+    // Update month display
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+    currentMonthElement.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+    // Clear existing days
+    calendarDays.innerHTML = '';
+
+    // Get first day of month
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    const prevLastDay = new Date(currentYear, currentMonth, 0);
+
+    const firstDayOfWeek = firstDay.getDay();
+    const lastDate = lastDay.getDate();
+    const prevLastDate = prevLastDay.getDate();
+
+    // Previous month's trailing days
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+        const day = prevLastDate - i;
+        const date = new Date(currentYear, currentMonth - 1, day);
+        createDayElement(day, date, true);
+    }
+
+    // Current month's days
+    for (let day = 1; day <= lastDate; day++) {
+        const date = new Date(currentYear, currentMonth, day);
+        createDayElement(day, date, false);
+    }
+
+    // Next month's leading days
+    const totalCells = calendarDays.children.length;
+    const remainingCells = 42 - totalCells; // 6 rows × 7 days
+    for (let day = 1; day <= remainingCells; day++) {
+        const date = new Date(currentYear, currentMonth + 1, day);
+        createDayElement(day, date, true);
     }
 }
+
+// Create a day element
+function createDayElement(day, date, isOtherMonth) {
+    const dayElement = document.createElement('div');
+    date.setHours(0, 0, 0, 0);
+
+    const status = getDateStatus(date, isOtherMonth);
+    dayElement.className = `calendar-day ${status}`;
+
+    // Day number
+    const dayNumber = document.createElement('div');
+    dayNumber.className = 'day-number';
+    dayNumber.textContent = day;
+    dayElement.appendChild(dayNumber);
+
+    document.getElementById('calendarDays').appendChild(dayElement);
+}
+
+// Navigation
+document.getElementById('prevMonth').addEventListener('click', () => {
+    currentMonth--;
+    if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+    }
+    generateCalendar();
+});
+
+document.getElementById('nextMonth').addEventListener('click', () => {
+    currentMonth++;
+    if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+    }
+    generateCalendar();
+});
+
+// Initialize calendar
+generateCalendar();
 </script>
 {% endblock %}

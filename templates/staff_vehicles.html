@@ -33,17 +33,12 @@
                 <td>{{ vehicle.get_year() }}</td>
                 <td>${{ "%.2f"|format(vehicle.get_daily_rate()) }}</td>
                 <td>
-                    {% if vehicle.is_currently_rented() %}
-                    <span class="status-rented">Rented</span>
-                    {% else %}
-                    <span class="status-available">Available</span>
-                    {% endif %}
+                    <a href="{{ url_for('vehicle_detail', vehicle_id=vehicle.get_vehicle_id()) }}"
+                       class="btn btn-small">View</a>
                 </td>
                 <td>
-                    <a href="{{ url_for('vehicle_detail', vehicle_id=vehicle.get_vehicle_id()) }}" 
-                       class="btn btn-small">View</a>
                     {% if not vehicle.is_currently_rented() %}
-                    <a href="{{ url_for('staff_delete_vehicle', vehicle_id=vehicle.get_vehicle_id()) }}" 
+                    <a href="{{ url_for('staff_delete_vehicle', vehicle_id=vehicle.get_vehicle_id()) }}"
                        class="btn btn-small btn-danger"
                        onclick="return confirm('Delete this vehicle?')">Delete</a>
                     {% endif %}

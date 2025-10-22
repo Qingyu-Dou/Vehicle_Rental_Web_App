@@ -55,7 +55,7 @@ class VehicleRental:
     def save_data(self) -> None:
         """
         Save all system data to a pickle file.
-        
+
         Raises:
             DataPersistenceError: If saving fails
         """
@@ -68,19 +68,19 @@ class VehicleRental:
                 'save_timestamp': datetime.now().isoformat(),
                 'version': '3.0'
             }
-            
+
             with open(self.__data_file, 'wb') as file:
                 pickle.dump(data, file)
-            
+
             print(f"Data successfully saved to {self.__data_file}")
-            
+
         except (IOError, pickle.PickleError, OSError) as e:
             raise DataPersistenceError("saving", str(e))
     
     def load_data(self) -> None:
         """
         Load system data from a pickle file.
-        
+
         Raises:
             DataPersistenceError: If loading fails critically
         """
@@ -88,36 +88,36 @@ class VehicleRental:
             if not os.path.exists(self.__data_file):
                 print("No existing data file found. Starting with empty system.")
                 return
-            
+
             with open(self.__data_file, 'rb') as file:
                 data = pickle.load(file)
-            
+
             # Load vehicles
             if 'vehicles' in data and isinstance(data['vehicles'], list):
                 self.__vehicles = data['vehicles']
             else:
                 self.__vehicles = []
-            
+
             # Load renters
             if 'renters' in data and isinstance(data['renters'], list):
                 self.__renters = data['renters']
             else:
                 self.__renters = []
-            
+
             # Load rental records
             if 'rental_records' in data and isinstance(data['rental_records'], list):
                 self.__rental_records = data['rental_records']
             else:
                 self.__rental_records = []
-            
+
             # Load next record ID
             if 'next_record_id' in data:
                 self.__next_record_id = data['next_record_id']
             else:
                 self.__next_record_id = 1
-            
+
             print(f"Data successfully loaded. {len(self.__vehicles)} vehicles, {len(self.__renters)} renters, and {len(self.__rental_records)} rental records.")
-                
+
         except FileNotFoundError:
             print("Data file not found. Starting with empty system.")
         except (IOError, pickle.PickleError, EOFError) as e:
@@ -234,11 +234,21 @@ class VehicleRental:
             # Calculate rental cost with user-specific discount
             user_discount = renter.calculate_discount(rental_period)
             rental_cost = vehicle.calculate_rental_cost(rental_period, user_discount)
-            
+
             # Add rental to vehicle and renter
             vehicle.add_rental(rental_period, renter_id)
             renter.add_rental(vehicle_id, rental_period, rental_cost)
-            
+
+            # Create rental record for tracking
+            rental_record = self.add_rental_record(
+                vehicle_id=vehicle_id,
+                renter_id=renter_id,
+                start_date=rental_period.get_start_date(),
+                end_date=rental_period.get_end_date(),
+                rental_cost=rental_cost,
+                discount_applied=user_discount
+            )
+
             # Display rental confirmation
             duration = rental_period.calculate_duration()
             discount_pct = user_discount * 100
@@ -270,67 +280,161 @@ class VehicleRental:
             print(f"Unexpected error during rental: {e}")
             return False
     
-    def return_vehicles(self, vehicle_id: str, renter_id: str, rental_period: RentalPeriod) -> bool:
+    def return_vehicle_with_date(self, vehicle_id: str, renter_id: str, return_date: str) -> dict:
         """
-        Return a rented vehicle.
-        
+        Return a rented vehicle with support for early, normal, and overdue returns.
+
         Args:
             vehicle_id (str): ID of the vehicle to return
             renter_id (str): ID of the renter returning the vehicle
-            rental_period (RentalPeriod): Rental period being completed
-            
+            return_date (str): Actual return date (DD-MM-YYYY format)
+
         Returns:
-            bool: True if return successful, False otherwise
+            dict: Return information including status, type, costs, and messages
         """
+        from datetime import datetime
+
         try:
             # Find vehicle and renter
             vehicle = self._find_vehicle_by_id(vehicle_id)
             if vehicle is None:
                 raise VehicleNotFoundError(vehicle_id)
-            
+
             renter = self._find_renter_by_id(renter_id)
             if renter is None:
                 raise RenterNotFoundError(renter_id)
-            
+
             # Check if vehicle is currently rented
             if not vehicle.is_currently_rented():
                 raise VehicleAlreadyReturnedError(vehicle_id)
-            
+
+            # Find the active rental record
+            active_record = None
+            for record in self.__rental_records:
+                if (record.get_vehicle_id() == vehicle_id and
+                    record.get_renter_id() == renter_id and
+                    record.is_active()):
+                    active_record = record
+                    break
+
+            if not active_record:
+                return {
+                    'success': False,
+                    'error': 'No active rental record found for this vehicle and renter.'
+                }
+
+            # Parse dates
+            start_date = datetime.strptime(active_record.get_start_date(), "%d-%m-%Y")
+            scheduled_end_date = datetime.strptime(active_record.get_end_date(), "%d-%m-%Y")
+            actual_return_date = datetime.strptime(return_date, "%d-%m-%Y")
+
+            # Calculate days
+            scheduled_days = (scheduled_end_date - start_date).days
+            actual_days = (actual_return_date - start_date).days
+
+            # Get original rental cost (per day rate)
+            daily_rate = vehicle.get_daily_rate()
+            user_discount = active_record.get_discount_applied()
+            original_total_cost = active_record.get_rental_cost()
+
+            # Determine return type and calculate final cost
+            return_type = ""
+            final_cost = original_total_cost
+            penalty = 0
+            refund = 0
+            message = ""
+
+            if actual_return_date < scheduled_end_date:
+                # Early Return
+                return_type = "early"
+                # Charge for actual days used
+                final_cost = vehicle.calculate_rental_cost(
+                    RentalPeriod(active_record.get_start_date(), return_date),
+                    user_discount
+                )
+                refund = original_total_cost - final_cost
+                message = f"Early return: {scheduled_days - actual_days} day(s) unused. Refund: ${refund:.2f}"
+
+            elif actual_return_date > scheduled_end_date:
+                # Overdue Return
+                return_type = "overdue"
+                overdue_days = (actual_return_date - scheduled_end_date).days
+                # Charge 150% for overdue days
+                overdue_cost = overdue_days * daily_rate * 1.5
+                penalty = overdue_cost
+                final_cost = original_total_cost + penalty
+                message = f"Overdue return: {overdue_days} day(s) late. Penalty (150% rate): ${penalty:.2f}"
+
+            else:
+                # Normal Return (on time)
+                return_type = "normal"
+                final_cost = original_total_cost
+                message = "Vehicle returned on time."
+
+            # Create rental period for removal
+            rental_period = RentalPeriod(active_record.get_start_date(), active_record.get_end_date())
+
             # Remove rental from vehicle
             if not vehicle.remove_rental(rental_period):
-                print(f"Error: Could not find matching rental period for vehicle {vehicle_id}.")
-                return False
-            
+                return {
+                    'success': False,
+                    'error': 'Could not remove rental from vehicle.'
+                }
+
             # Complete rental in renter's records
             if not renter.complete_rental(vehicle_id, rental_period):
-                print(f"Error: Could not find matching rental in renter's records.")
-                # Try to restore vehicle rental state
+                # Restore vehicle state
                 vehicle.add_rental(rental_period, renter_id)
-                return False
-            
-            print(f"\n{'='*60}")
-            print(f"RETURN CONFIRMATION")
-            print(f"{'='*60}")
-            print(f"Vehicle ID: {vehicle_id}")
-            print(f"Vehicle: {vehicle.get_year()} {vehicle.get_make()} {vehicle.get_model()} ({vehicle.get_vehicle_type()})")
-            print(f"Returned by: {renter.get_name()}")
-            print(f"Rental period: {rental_period.get_start_date()} to {rental_period.get_end_date()}")
-            print(f"{'='*60}")
-            
-            # Auto-save after successful return
+                return {
+                    'success': False,
+                    'error': 'Could not update renter records.'
+                }
+
+            # Update rental record
+            active_record.process_return(return_date, final_cost, return_type)
+
+            # Auto-save
             try:
                 self.save_data()
             except DataPersistenceError as e:
                 print(f"Warning: Could not save data after return: {e}")
-            
-            return True
-            
+
+            # Return success with details
+            return {
+                'success': True,
+                'return_type': return_type,
+                'scheduled_end_date': active_record.get_end_date(),
+                'actual_return_date': return_date,
+                'scheduled_days': scheduled_days,
+                'actual_days': actual_days,
+                'original_cost': original_total_cost,
+                'final_cost': final_cost,
+                'penalty': penalty,
+                'refund': refund,
+                'message': message,
+                'vehicle': vehicle,
+                'renter': renter,
+                'record': active_record
+            }
+
         except (VehicleNotFoundError, RenterNotFoundError, VehicleAlreadyReturnedError) as e:
-            print(f"Error: {e}")
-            return False
+            return {
+                'success': False,
+                'error': str(e)
+            }
         except Exception as e:
-            print(f"Unexpected error during return: {e}")
-            return False
+            return {
+                'success': False,
+                'error': f'Unexpected error: {str(e)}'
+            }
+
+    def return_vehicles(self, vehicle_id: str, renter_id: str, rental_period: RentalPeriod) -> bool:
+        """
+        Legacy return method - redirects to new return_vehicle_with_date method.
+        Kept for backwards compatibility.
+        """
+        result = self.return_vehicle_with_date(vehicle_id, renter_id, rental_period.get_end_date())
+        return result.get('success', False)
     
     def display_available_vehicles(self) -> None:
         """Display all available vehicles in the system."""

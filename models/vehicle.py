@@ -25,14 +25,14 @@ class Vehicle(ABC):
     def __init__(self, vehicle_id: str, make: str, model: str, year: int, daily_rate: float) -> None:
         """
         Initialize a Vehicle object with common attributes.
-        
+
         Args:
             vehicle_id (str): Unique identifier for the vehicle
             make (str): Manufacturer of the vehicle
             model (str): Model of the vehicle
             year (int): Year the vehicle was manufactured
             daily_rate (float): Daily rental rate for the vehicle
-            
+
         Raises:
             InvalidVehicleDataError: If any input parameter is invalid
         """
@@ -41,10 +41,10 @@ class Vehicle(ABC):
         self.__model = self._validate_model(model)
         self.__year = self._validate_year(year)
         self.__daily_rate = self._validate_daily_rate(daily_rate)
-        
+
         # Cross-field validation
         self._validate_vehicle_year_vs_rate(self.__year, self.__daily_rate)
-        
+
         # Rental management - support multiple rentals
         self.__rental_periods: List[Dict[str, Any]] = []
         self.__rental_history: List[Dict[str, Any]] = []
@@ -168,7 +168,7 @@ class Vehicle(ABC):
     def get_rental_history(self) -> List[Dict[str, Any]]:
         """Get the rental history for this vehicle."""
         return self.__rental_history.copy()
-    
+
     # Setter methods
     def set_vehicle_id(self, vehicle_id: str) -> None:
         """Set the vehicle's unique identifier."""
@@ -195,7 +195,7 @@ class Vehicle(ABC):
         # Cross-validate with existing year
         self._validate_vehicle_year_vs_rate(self.__year, validated_rate)
         self.__daily_rate = validated_rate
-    
+
     # Rental management methods
     def is_available(self, rental_period) -> bool:
         """Check if the vehicle is available for the given rental period."""

@@ -14,11 +14,13 @@
                 <th>Vehicle ID</th>
                 <th>Renter ID</th>
                 <th>Start Date</th>
-                <th>End Date</th>
-                <th>Duration</th>
-                <th>Cost</th>
+                <th>Scheduled End</th>
+                <th>Actual Return</th>
+                <th>Days</th>
+                <th>Original Cost</th>
+                <th>Final Cost</th>
                 <th>Status</th>
-                <th>Created</th>
+                <th>Return Type</th>
             </tr>
         </thead>
         <tbody>
@@ -29,10 +31,36 @@
                 <td>{{ record.get_renter_id() }}</td>
                 <td>{{ record.get_start_date() }}</td>
                 <td>{{ record.get_end_date() }}</td>
-                <td>{{ record.calculate_duration() }} days</td>
+                <td>
+                    {% if record.get_actual_return_date() %}
+                        {{ record.get_actual_return_date() }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if record.get_actual_return_date() %}
+                        {{ record.calculate_actual_duration() }} days
+                    {% else %}
+                        {{ record.calculate_duration() }} days
+                    {% endif %}
+                </td>
                 <td>${{ "%.2f"|format(record.get_rental_cost()) }}</td>
+                <td>
+                    {% if record.get_final_cost() %}
+                        <strong>${{ "%.2f"|format(record.get_final_cost()) }}</strong>
+                    {% else %}
+                        ${{ "%.2f"|format(record.get_rental_cost()) }}
+                    {% endif %}
+                </td>
                 <td><span class="status-{{ record.get_status() }}">{{ record.get_status()|upper }}</span></td>
-                <td>{{ record.get_created_at() }}</td>
+                <td>
+                    {% if record.get_return_type() %}
+                        <span class="return-type-{{ record.get_return_type() }}">{{ record.get_return_type()|upper }}</span>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>

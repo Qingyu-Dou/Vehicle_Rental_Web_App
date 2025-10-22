@@ -23,7 +23,7 @@ class Truck(Vehicle):
                  load_capacity: float, truck_type: str, has_hydraulic_lift: bool) -> None:
         """
         Initialize a Truck object.
-        
+
         Args:
             vehicle_id (str): Unique identifier for the truck
             make (str): Manufacturer of the truck
@@ -33,7 +33,7 @@ class Truck(Vehicle):
             load_capacity (float): Load capacity in tonnes
             truck_type (str): Type of truck (Light, Medium, Heavy, Box, Flatbed)
             has_hydraulic_lift (bool): Whether the truck has hydraulic lift system
-            
+
         Raises:
             InvalidVehicleDataError: If any truck-specific parameter is invalid
         """

@@ -47,6 +47,15 @@ def init_routes(app):
                 return redirect(url_for('dashboard'))
             return f(*args, **kwargs)
         return decorated_function
+
+    def non_staff_required(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'user_type' in session and session['user_type'] == 'Staff':
+                flash('Staff cannot rent or return vehicles.', 'error')
+                return redirect(url_for('dashboard'))
+            return f(*args, **kwargs)
+        return decorated_function
     
     # ============ Home & Login Routes ============
     @app.route('/')
@@ -160,12 +169,18 @@ def init_routes(app):
         if not vehicle:
             flash('Vehicle not found.', 'error')
             return redirect(url_for('vehicles'))
-        
-        return render_template('vehicle_detail.html', vehicle=vehicle)
+
+        # Get rental records for this vehicle to show in calendar
+        rental_records = rental_system.get_rental_records_by_vehicle(vehicle_id)
+
+        return render_template('vehicle_detail.html',
+                             vehicle=vehicle,
+                             rental_records=rental_records)
     
     # ============ Rental Routes ============
     @app.route('/rent/<vehicle_id>', methods=['GET', 'POST'])
     @login_required
+    @non_staff_required
     def rent_vehicle(vehicle_id):
         """Handle vehicle rental."""
         vehicle = rental_system._find_vehicle_by_id(vehicle_id)
@@ -197,8 +212,13 @@ def init_routes(app):
                     flash('Rental failed. Vehicle may not be available.', 'error')
             except Exception as e:
                 flash(f'Error: {str(e)}', 'error')
-        
-        return render_template('rent_form.html', vehicle=vehicle)
+
+        # Get rental periods to disable rented dates in the form
+        rental_periods = vehicle.get_rental_periods()
+
+        return render_template('rent_form.html',
+                             vehicle=vehicle,
+                             rental_periods=rental_periods)
     
     @app.route('/invoice/<vehicle_id>')
     @login_required
@@ -230,123 +250,74 @@ def init_routes(app):
     
     @app.route('/return/<vehicle_id>', methods=['GET', 'POST'])
     @login_required
+    @non_staff_required
     def return_vehicle(vehicle_id):
-        """Handle vehicle return with early return support."""
+        """Handle vehicle return with early/normal/overdue support."""
         user_id = session.get('user_id')
-        user = rental_system._find_renter_by_id(user_id)
-        
-        # Find active rental
-        current_rentals = user.get_current_rentals()
-        vehicle_rental = None
-        for rental in current_rentals:
-            if rental['vehicle_id'] == vehicle_id:
-                vehicle_rental = rental
+
+        # Find active rental record
+        active_record = None
+        for record in rental_system.get_rental_records():
+            if (record.get_vehicle_id() == vehicle_id and
+                record.get_renter_id() == user_id and
+                record.is_active()):
+                active_record = record
                 break
-        
-        if not vehicle_rental:
+
+        if not active_record:
             flash('No active rental found for this vehicle.', 'error')
             return redirect(url_for('dashboard'))
-        
+
+        vehicle = rental_system._find_vehicle_by_id(vehicle_id)
+
         if request.method == 'POST':
+            return_date = request.form.get('return_date')
+
             try:
-                # Get actual return date from form (for early return)
-                return_date = request.form.get('return_date')
-                
-                if return_date:
-                    # Early return - use actual return date
-                    return_dt = datetime.strptime(return_date, '%Y-%m-%d')
-                    actual_return = return_dt.strftime('%d-%m-%Y')
-                    
-                    # Create period with actual dates
-                    actual_period = RentalPeriod(
-                        vehicle_rental['start_date'],
-                        actual_return,
-                        allow_past_dates=True
-                    )
-                    
-                    # Calculate actual days used
-                    actual_days = actual_period.calculate_duration()
-                    
-                    # Check if returning early
-                    original_period = RentalPeriod(
-                        vehicle_rental['start_date'],
-                        vehicle_rental['end_date'],
-                        allow_past_dates=True
-                    )
-                    original_days = original_period.calculate_duration()
-                    
-                    is_early = actual_days < original_days
+                # Convert date format from YYYY-MM-DD to DD-MM-YYYY
+                return_dt = datetime.strptime(return_date, '%Y-%m-%d')
+                return_formatted = return_dt.strftime('%d-%m-%Y')
+
+                # Process return using new method
+                result = rental_system.return_vehicle_with_date(
+                    vehicle_id,
+                    user_id,
+                    return_formatted
+                )
+
+                if result['success']:
+                    # Show confirmation page with details
+                    return render_template('return_confirmation.html',
+                                         result=result,
+                                         vehicle=vehicle)
                 else:
-                    # Normal return on scheduled date
-                    actual_return = vehicle_rental['end_date']
-                    is_early = False
-                    actual_period = RentalPeriod(
-                        vehicle_rental['start_date'],
-                        vehicle_rental['end_date'],
-                        allow_past_dates=True
-                    )
-                
-                # Process return
-                success = rental_system.return_vehicles(vehicle_id, user_id, actual_period)
-                
-                if success:
-                    if is_early:
-                        flash(f'Vehicle returned early! Charged for actual {actual_days} days used.', 'success')
-                    else:
-                        flash('Vehicle returned successfully!', 'success')
-                    return redirect(url_for('return_invoice', vehicle_id=vehicle_id))
-                else:
-                    flash('Return failed.', 'error')
+                    flash(result.get('error', 'Return failed'), 'error')
+
             except Exception as e:
                 flash(f'Error: {str(e)}', 'error')
-        
-        vehicle = rental_system._find_vehicle_by_id(vehicle_id)
-        
-        # Calculate if early return and potential refund
+
+        # Calculate return context
         today = datetime.now()
-        end_date_obj = datetime.strptime(vehicle_rental['end_date'], '%d-%m-%Y')
-        can_return_early = today < end_date_obj
-        
+        scheduled_end = datetime.strptime(active_record.get_end_date(), '%d-%m-%Y')
+
         return render_template('return_form.html',
                              vehicle=vehicle,
-                             rental=vehicle_rental,
-                             can_return_early=can_return_early,
-                             today=today.strftime('%Y-%m-%d'))
+                             rental_record=active_record,
+                             today=today.strftime('%Y-%m-%d'),
+                             scheduled_end_date=scheduled_end.strftime('%Y-%m-%d'))
     
-    
-    @app.route('/return-invoice/<vehicle_id>')
-    @login_required
-    def return_invoice(vehicle_id):
-        """Display return invoice with actual charges."""
-        user_id = session.get('user_id')
-        user_rentals = rental_system.get_rental_records_by_renter(user_id)
-        
-        # Find the latest completed rental for this vehicle
-        vehicle_rentals = [r for r in user_rentals if r.get_vehicle_id() == vehicle_id and r.is_completed()]
-        if not vehicle_rentals:
-            flash('No completed rental record found.', 'error')
-            return redirect(url_for('dashboard'))
-        
-        latest_rental = vehicle_rentals[-1]
-        vehicle = rental_system._find_vehicle_by_id(vehicle_id)
-        user = rental_system._find_renter_by_id(user_id)
-        
-        return render_template('return_invoice.html',
-                             rental=latest_rental,
-                             vehicle=vehicle,
-                             user=user)
-    
+
+
     @app.route('/history')
     @login_required
     def rental_history():
         """Display user's rental history."""
         user_id = session.get('user_id')
-        user = rental_system._find_renter_by_id(user_id)
-        
-        # Get rental history from user object
-        rentals = user.get_rental_history()
-        
-        return render_template('history.html', rentals=rentals)
+
+        # Get rental records from rental system (includes all return information)
+        rental_records = rental_system.get_rental_records_by_renter(user_id)
+
+        return render_template('history.html', rental_records=rental_records)
     
     # ============ Staff Management Routes ============
     @app.route('/staff/users')
@@ -472,7 +443,7 @@ def init_routes(app):
     def staff_delete_vehicle(vehicle_id):
         """Delete vehicle (staff only)."""
         vehicle = rental_system._find_vehicle_by_id(vehicle_id)
-        
+
         if vehicle:
             # Check if vehicle is currently rented
             if vehicle.is_currently_rented():
@@ -483,7 +454,7 @@ def init_routes(app):
                 flash('Vehicle deleted successfully.', 'success')
         else:
             flash('Vehicle not found.', 'error')
-        
+
         return redirect(url_for('staff_vehicles'))
     
     @app.route('/staff/analytics')
@@ -493,18 +464,76 @@ def init_routes(app):
         """Display analytics (staff only)."""
         vehicles = rental_system.get_vehicles()
         records = rental_system.get_rental_records()
-        
+        users = rental_system.get_renters()
+
         # Calculate statistics
         vehicle_rental_counts = {}
+        vehicle_revenue = {}
         total_revenue = 0
-        
+        total_days = 0
+        completed_rentals = 0
+
+        # Revenue by vehicle type
+        revenue_by_vehicle_type = {'Car': 0, 'Motorbike': 0, 'Truck': 0}
+        rentals_by_vehicle_type = {'Car': 0, 'Motorbike': 0, 'Truck': 0}
+
+        # Revenue by user type
+        revenue_by_user_type = {'Individual': 0, 'Corporate': 0, 'Staff': 0}
+        rentals_by_user_type = {'Individual': 0, 'Corporate': 0, 'Staff': 0}
+
         for record in records:
             vid = record.get_vehicle_id()
+            vehicle = rental_system._find_vehicle_by_id(vid)
+            user = rental_system._find_renter_by_id(record.get_renter_id())
+
+            # Count rentals per vehicle
             vehicle_rental_counts[vid] = vehicle_rental_counts.get(vid, 0) + 1
+
             if record.is_completed():
-                total_revenue += record.get_rental_cost()
-        
-        # Most/least rented
+                # Use final cost if available (after return), otherwise use rental cost
+                cost = record.get_final_cost() if record.get_final_cost() else record.get_rental_cost()
+                total_revenue += cost
+
+                # Track revenue per vehicle
+                if vid not in vehicle_revenue:
+                    vehicle_revenue[vid] = 0
+                vehicle_revenue[vid] += cost
+
+                # Use actual duration if available, otherwise use scheduled duration
+                if record.get_actual_return_date():
+                    total_days += record.calculate_actual_duration()
+                else:
+                    total_days += record.calculate_duration()
+
+                completed_rentals += 1
+
+                # Revenue by vehicle type
+                if vehicle:
+                    v_type = vehicle.get_vehicle_type()
+                    revenue_by_vehicle_type[v_type] += cost
+                    rentals_by_vehicle_type[v_type] += 1
+
+                # Revenue by user type
+                if user:
+                    u_type = user.get_user_type()
+                    revenue_by_user_type[u_type] += cost
+                    rentals_by_user_type[u_type] += 1
+
+        # Calculate average revenue per rental
+        avg_revenue = total_revenue / completed_rentals if completed_rentals > 0 else 0
+
+        # Calculate average rental duration
+        avg_days = total_days / completed_rentals if completed_rentals > 0 else 0
+
+        # Top 5 most rented vehicles
+        top_5_rented = sorted(vehicle_rental_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        top_5_vehicles = [(rental_system._find_vehicle_by_id(vid), count) for vid, count in top_5_rented]
+
+        # Top 5 revenue generating vehicles
+        top_5_revenue = sorted(vehicle_revenue.items(), key=lambda x: x[1], reverse=True)[:5]
+        top_5_revenue_vehicles = [(rental_system._find_vehicle_by_id(vid), revenue) for vid, revenue in top_5_revenue]
+
+        # Most/least rented (overall)
         if vehicle_rental_counts:
             most_rented_id = max(vehicle_rental_counts, key=vehicle_rental_counts.get)
             least_rented_id = min(vehicle_rental_counts, key=vehicle_rental_counts.get)
@@ -512,13 +541,24 @@ def init_routes(app):
             least_rented = rental_system._find_vehicle_by_id(least_rented_id)
         else:
             most_rented = least_rented = None
-        
+
         return render_template('staff_analytics.html',
                              total_revenue=total_revenue,
                              total_rentals=len(records),
+                             completed_rentals=completed_rentals,
+                             avg_revenue=avg_revenue,
+                             avg_days=avg_days,
                              most_rented=most_rented,
                              least_rented=least_rented,
-                             vehicle_counts=vehicle_rental_counts)
+                             vehicle_counts=vehicle_rental_counts,
+                             top_5_vehicles=top_5_vehicles,
+                             top_5_revenue_vehicles=top_5_revenue_vehicles,
+                             revenue_by_vehicle_type=revenue_by_vehicle_type,
+                             rentals_by_vehicle_type=rentals_by_vehicle_type,
+                             revenue_by_user_type=revenue_by_user_type,
+                             rentals_by_user_type=rentals_by_user_type,
+                             records=records,
+                             renters=users)
     
     @app.route('/staff/history')
     @login_required

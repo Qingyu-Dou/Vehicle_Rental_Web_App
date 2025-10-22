@@ -23,7 +23,7 @@ class Motorbike(Vehicle):
                  engine_capacity: int, bike_type: str, has_abs: bool) -> None:
         """
         Initialize a Motorbike object.
-        
+
         Args:
             vehicle_id (str): Unique identifier for the motorbike
             make (str): Manufacturer of the motorbike
@@ -33,7 +33,7 @@ class Motorbike(Vehicle):
             engine_capacity (int): Engine capacity in CC
             bike_type (str): Type of bike (Sport, Cruiser, Touring, Adventure, Standard)
             has_abs (bool): Whether the bike has ABS braking system
-            
+
         Raises:
             InvalidVehicleDataError: If any motorbike-specific parameter is invalid
         """

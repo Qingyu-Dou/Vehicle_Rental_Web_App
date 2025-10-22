@@ -5,52 +5,331 @@
 {% block content %}
 <div class="rent-form-page">
     <h1>Rent Vehicle</h1>
-    
-    <div class="vehicle-summary">
+
+    <div class="vehicle-info">
         <h2>{{ vehicle.get_year() }} {{ vehicle.get_make() }} {{ vehicle.get_model() }}</h2>
-        <p>Daily Rate: ${{ "%.2f"|format(vehicle.get_daily_rate()) }}</p>
+        <p class="daily-rate">Daily Rate: ${{ "%.2f"|format(vehicle.get_daily_rate()) }}</p>
     </div>
-    
-    <form method="POST" class="rental-form">
+
+    <form method="POST" class="rental-form" id="rentalForm">
         <div class="form-group">
             <label for="start_date">Start Date:</label>
             <input type="date" id="start_date" name="start_date" required>
         </div>
-        
+
         <div class="form-group">
             <label for="end_date">End Date:</label>
             <input type="date" id="end_date" name="end_date" required>
         </div>
-        
-        <div class="rental-notes">
-            <h3>Rental Information:</h3>
-            <ul>
-                <li>Base rate: ${{ "%.2f"|format(vehicle.get_daily_rate()) }}/day</li>
+
+        <div class="pricing-info">
+            <h3>Pricing Information</h3>
+            <table class="pricing-table">
+                <tr>
+                    <td>Base Rate:</td>
+                    <td class="price">${{ "%.2f"|format(vehicle.get_daily_rate()) }}/day</td>
+                </tr>
                 {% if session.user_type == 'Corporate' %}
-                <li>Corporate discount: 15% off all rentals</li>
+                <tr class="discount-row">
+                    <td>Corporate Discount:</td>
+                    <td class="discount">15% off all rentals</td>
+                </tr>
                 {% elif session.user_type == 'Individual' %}
-                <li>Individual discount: 10% off rentals of 7+ days</li>
+                <tr class="discount-row">
+                    <td>Individual Discount:</td>
+                    <td class="discount">10% off rentals of 7+ days</td>
+                </tr>
                 {% endif %}
-                <li>Final cost will be calculated based on rental duration</li>
-            </ul>
+            </table>
+            <p class="note">Final cost will be calculated based on rental duration.</p>
         </div>
-        
+
+        {% if rental_periods and rental_periods|length > 0 %}
+        <div class="availability-note">
+            <p>This vehicle has rented periods. View the <a href="{{ url_for('vehicle_detail', vehicle_id=vehicle.get_vehicle_id()) }}">Availability Calendar</a> to check available dates.</p>
+        </div>
+        {% endif %}
+
         <div class="form-actions">
-            <a href="{{ url_for('vehicle_detail', vehicle_id=vehicle.get_vehicle_id()) }}" 
-               class="btn btn-secondary">Cancel</a>
+            <a href="{{ url_for('vehicle_detail', vehicle_id=vehicle.get_vehicle_id()) }}" class="btn btn-secondary">Back</a>
             <button type="submit" class="btn btn-primary">Confirm Rental</button>
         </div>
     </form>
 </div>
 
+<style>
+.rent-form-page {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.rent-form-page h1 {
+    margin-bottom: 1.5rem;
+    color: #2c3e50;
+    font-size: 1.8rem;
+}
+
+.vehicle-info {
+    background: #f8f9fa;
+    padding: 1.25rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e0e0e0;
+}
+
+.vehicle-info h2 {
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+    font-size: 1.3rem;
+}
+
+.daily-rate {
+    margin: 0;
+    color: #555;
+    font-size: 1rem;
+}
+
+.rental-form {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.9rem;
+}
+
+.form-group input[type="date"] {
+    width: 100%;
+    padding: 0.65rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+.form-group input[type="date"]:focus {
+    outline: none;
+    border-color: #2c3e50;
+}
+
+.pricing-info {
+    background: #f8f9fa;
+    padding: 1.25rem;
+    border-radius: 6px;
+    margin-bottom: 1.25rem;
+    border: 1px solid #e0e0e0;
+}
+
+.pricing-info h3 {
+    margin: 0 0 1rem 0;
+    color: #2c3e50;
+    font-size: 1rem;
+}
+
+.pricing-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0.75rem;
+}
+
+.pricing-table tr {
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.pricing-table tr:last-child {
+    border-bottom: none;
+}
+
+.pricing-table td {
+    padding: 0.6rem 0;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.pricing-table td.price {
+    text-align: right;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.discount-row td {
+    color: #28a745;
+}
+
+.pricing-table td.discount {
+    text-align: right;
+    font-weight: 600;
+    color: #28a745;
+}
+
+.note {
+    margin: 0.75rem 0 0 0;
+    font-size: 0.85rem;
+    color: #777;
+    font-style: italic;
+}
+
+.availability-note {
+    background: #e7f3ff;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1.25rem;
+    border: 1px solid #b3d9ff;
+}
+
+.availability-note p {
+    margin: 0;
+    color: #004085;
+    font-size: 0.9rem;
+}
+
+.availability-note a {
+    color: #004085;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.btn {
+    flex: 1;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: #2c3e50;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #1a252f;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .rent-form-page {
+        padding: 1rem;
+    }
+
+    .rental-form {
+        padding: 1rem;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
 <script>
 // Set minimum date to today
-document.getElementById('start_date').min = new Date().toISOString().split('T')[0];
-document.getElementById('end_date').min = new Date().toISOString().split('T')[0];
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('start_date').min = today;
+document.getElementById('end_date').min = today;
+
+// Parse rented periods from backend (DD-MM-YYYY format)
+const rentedPeriods = [
+    {% for period in rental_periods %}
+    {
+        start: '{{ period["start_date"] }}',
+        end: '{{ period["end_date"] }}'
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
+// Convert DD-MM-YYYY to Date object
+function parseDate(dateStr) {
+    const parts = dateStr.split('-');
+    return new Date(parts[2], parts[1] - 1, parts[0]);
+}
+
+// Check if two date ranges overlap
+// Rental period: start date to end date (both inclusive)
+function dateRangesOverlap(start1, end1, start2, end2) {
+    // New rental: [start1, end1]
+    // Existing rental: [start2, end2]
+    // They overlap if: start1 <= end2 AND end1 >= start2
+    return start1 <= end2 && end1 >= start2;
+}
+
+// Validate that selected dates don't overlap with rented periods
+function validateDates() {
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+
+    const startDate = startDateInput.value;
+    const endDate = endDateInput.value;
+
+    if (!startDate || !endDate) {
+        return true;
+    }
+
+    const selectedStart = new Date(startDate);
+    const selectedEnd = new Date(endDate);
+
+    for (const period of rentedPeriods) {
+        const rentedStart = parseDate(period.start);
+        const rentedEnd = parseDate(period.end);
+
+        if (dateRangesOverlap(selectedStart, selectedEnd, rentedStart, rentedEnd)) {
+            alert('The selected dates overlap with an existing rental period (' + period.start + ' to ' + period.end + ').\n\nPlease choose different dates.');
+            return false;
+        }
+    }
+
+    return true;
+}
 
 // Ensure end date is after start date
 document.getElementById('start_date').addEventListener('change', function() {
     document.getElementById('end_date').min = this.value;
+    if (document.getElementById('end_date').value) {
+        validateDates();
+    }
+});
+
+document.getElementById('end_date').addEventListener('change', function() {
+    validateDates();
+});
+
+// Validate on form submit
+document.getElementById('rentalForm').addEventListener('submit', function(e) {
+    if (!validateDates()) {
+        e.preventDefault();
+        return false;
+    }
 });
 </script>
 {% endblock %}

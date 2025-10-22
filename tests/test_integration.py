@@ -6,14 +6,29 @@ Tests end-to-end workflows: login → rent → return
 import pytest
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'models'))
 
-from models.vehicle_rental import VehicleRental
-from models.individual_user import IndividualUser
-from models.corporate_user import CorporateUser
-from models.staff_user import StaffUser
-from models.car import Car
-from models.rental_period import RentalPeriod
+# Add models directory to Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+models_path = os.path.join(project_root, 'models')
+
+if models_path not in sys.path:
+    sys.path.insert(0, models_path)
+
+# Import from models directory
+import vehicle_rental
+import individual_user
+import corporate_user
+import staff_user
+import car
+import rental_period
+
+VehicleRental = vehicle_rental.VehicleRental
+IndividualUser = individual_user.IndividualUser
+CorporateUser = corporate_user.CorporateUser
+StaffUser = staff_user.StaffUser
+Car = car.Car
+RentalPeriod = rental_period.RentalPeriod
 
 
 @pytest.fixture

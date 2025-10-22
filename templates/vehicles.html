@@ -48,20 +48,9 @@
                 <h3>{{ vehicle.get_year() }} {{ vehicle.get_make() }} {{ vehicle.get_model() }}</h3>
                 <p class="vehicle-type">{{ vehicle.get_vehicle_type() }}</p>
                 <p class="vehicle-price">${{ "%.2f"|format(vehicle.get_daily_rate()) }}/day</p>
-                <p class="vehicle-status">
-                    {% if vehicle.is_currently_rented() %}
-                    <span class="status-rented">Currently Rented</span>
-                    {% else %}
-                    <span class="status-available">Available</span>
-                    {% endif %}
-                </p>
                 <div class="vehicle-actions">
                     <a href="{{ url_for('vehicle_detail', vehicle_id=vehicle.get_vehicle_id()) }}" 
                        class="btn btn-small">View Details</a>
-                    {% if not vehicle.is_currently_rented() %}
-                    <a href="{{ url_for('rent_vehicle', vehicle_id=vehicle.get_vehicle_id()) }}" 
-                       class="btn btn-small btn-primary">Rent Now</a>
-                    {% endif %}
                 </div>
             </div>
         </div>

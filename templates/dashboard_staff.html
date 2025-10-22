@@ -6,7 +6,7 @@
 <div class="dashboard">
     <h1>Staff Dashboard</h1>
     <p class="user-type">Welcome, {{ user.get_name() }} ({{ user.get_role() }})</p>
-    
+
     <div class="stats-grid">
         <div class="stat-card">
             <h3>Total Vehicles</h3>
@@ -25,25 +25,73 @@
             <p class="stat-number">{{ active_count }}</p>
         </div>
     </div>
-    
-    <h2>Management Tools</h2>
-    <div class="action-grid">
-        <a href="{{ url_for('staff_users') }}" class="action-card">
-            <h3>Manage Users</h3>
-            <p>Add, view, or remove users</p>
-        </a>
-        <a href="{{ url_for('staff_vehicles') }}" class="action-card">
-            <h3>Manage Vehicles</h3>
-            <p>Add, view, or remove vehicles</p>
-        </a>
-        <a href="{{ url_for('staff_history') }}" class="action-card">
-            <h3>Rental History</h3>
-            <p>View all rental records</p>
-        </a>
-        <a href="{{ url_for('staff_analytics') }}" class="action-card">
-            <h3>Analytics</h3>
-            <p>View reports and statistics</p>
-        </a>
-    </div>
 </div>
+
+<style>
+.dashboard {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.dashboard h1 {
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
+}
+
+.user-type {
+    color: #666;
+    margin-bottom: 2rem;
+    font-size: 1rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    text-align: center;
+}
+
+.stat-card h3 {
+    margin: 0 0 1rem 0;
+    color: #666;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-number {
+    margin: 0;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+@media (max-width: 768px) {
+    .dashboard {
+        padding: 1rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .stat-card {
+        padding: 1rem;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+    }
+}
+</style>
 {% endblock %}
