@@ -53,7 +53,11 @@ def init_routes(app):
         def decorated_function(*args, **kwargs):
             if 'user_type' in session and session['user_type'] == 'Staff':
                 flash('Staff cannot rent or return vehicles.', 'error')
-                return redirect(url_for('dashboard'))
+                # Get the vehicle_id from kwargs if available
+                vehicle_id = kwargs.get('vehicle_id')
+                if vehicle_id:
+                    return redirect(url_for('vehicle_detail', vehicle_id=vehicle_id))
+                return redirect(url_for('vehicles'))
             return f(*args, **kwargs)
         return decorated_function
     
@@ -529,6 +533,10 @@ def init_routes(app):
         top_5_rented = sorted(vehicle_rental_counts.items(), key=lambda x: x[1], reverse=True)[:5]
         top_5_vehicles = [(rental_system._find_vehicle_by_id(vid), count) for vid, count in top_5_rented]
 
+        # Bottom 5 least rented vehicles
+        bottom_5_rented = sorted(vehicle_rental_counts.items(), key=lambda x: x[1])[:5]
+        bottom_5_vehicles = [(rental_system._find_vehicle_by_id(vid), count) for vid, count in bottom_5_rented]
+
         # Top 5 revenue generating vehicles
         top_5_revenue = sorted(vehicle_revenue.items(), key=lambda x: x[1], reverse=True)[:5]
         top_5_revenue_vehicles = [(rental_system._find_vehicle_by_id(vid), revenue) for vid, revenue in top_5_revenue]
@@ -552,6 +560,7 @@ def init_routes(app):
                              least_rented=least_rented,
                              vehicle_counts=vehicle_rental_counts,
                              top_5_vehicles=top_5_vehicles,
+                             bottom_5_vehicles=bottom_5_vehicles,
                              top_5_revenue_vehicles=top_5_revenue_vehicles,
                              revenue_by_vehicle_type=revenue_by_vehicle_type,
                              rentals_by_vehicle_type=rentals_by_vehicle_type,

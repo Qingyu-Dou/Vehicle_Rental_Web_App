@@ -104,43 +104,18 @@ class Motorbike(Vehicle):
     
     def calculate_rental_cost(self, rental_period: RentalPeriod, user_discount: float = 0.0) -> float:
         """
-        Calculate the rental cost for a motorbike with bike-specific adjustments.
-        
+        Calculate the rental cost for a motorbike.
+
         Args:
             rental_period (RentalPeriod): The rental period
             user_discount (float): User-specific discount percentage (0.0 to 1.0)
-            
+
         Returns:
-            float: Total rental cost after discounts and adjustments
+            float: Total rental cost after discounts
         """
         base_cost = self.get_base_rental_cost(rental_period)
-        
-        # Motorbike-specific pricing adjustments
-        premium_multiplier = 1.0
-        
-        # Engine capacity adjustments
-        if self.__engine_capacity >= 1000:
-            premium_multiplier += 0.25  # Large bikes premium
-        elif self.__engine_capacity >= 600:
-            premium_multiplier += 0.15  # Medium bikes premium
-        elif self.__engine_capacity >= 300:
-            premium_multiplier += 0.05  # Small premium for moderate bikes
-        
-        # Bike type adjustments
-        if self.__bike_type == "Sport":
-            premium_multiplier += 0.20
-        elif self.__bike_type == "Adventure":
-            premium_multiplier += 0.15
-        elif self.__bike_type == "Touring":
-            premium_multiplier += 0.10
-        
-        # ABS safety premium
-        if self.__has_abs:
-            premium_multiplier += 0.05
-        
-        adjusted_cost = base_cost * premium_multiplier
-        final_cost = self.apply_discount(adjusted_cost, user_discount)
-        
+        final_cost = self.apply_discount(base_cost, user_discount)
+
         return round(final_cost, 2)
     
     def get_vehicle_type(self) -> str:

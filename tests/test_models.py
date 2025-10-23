@@ -150,8 +150,8 @@ def test_rental_cost_calculation(system):
     
     user_rentals = user.get_current_rentals()
     assert len(user_rentals) > 0
-    # 5 days * $65 + 5% GST = $341.25
-    assert user_rentals[0]['cost'] == 341.25
+    # 5 days * $65 = $325.00
+    assert user_rentals[0]['cost'] == 325.00
 
 
 def test_rental_with_corporate_discount(system):
@@ -165,10 +165,10 @@ def test_rental_with_corporate_discount(system):
     system.rent_vehicles("C001", "C001", period)
     
     user_rentals = user.get_current_rentals()
-    # 5 days * $65 * 0.85 (15% discount) + 5% GST
-    base = 325.0 * 0.85  # $276.25
-    with_gst = base * 1.05  # $290.0625
-    assert abs(user_rentals[0]['cost'] - with_gst) < 0.01
+    # 5 days * $65 * 0.85 (15% corporate discount)
+    base = 325.0
+    final_cost = base * 0.85  # $276.25 after 15% discount
+    assert abs(user_rentals[0]['cost'] - final_cost) < 0.01
 
 
 if __name__ == "__main__":

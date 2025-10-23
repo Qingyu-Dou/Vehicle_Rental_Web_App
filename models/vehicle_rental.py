@@ -328,9 +328,9 @@ class VehicleRental:
             scheduled_end_date = datetime.strptime(active_record.get_end_date(), "%d-%m-%Y")
             actual_return_date = datetime.strptime(return_date, "%d-%m-%Y")
 
-            # Calculate days
-            scheduled_days = (scheduled_end_date - start_date).days
-            actual_days = (actual_return_date - start_date).days
+            # Calculate days (inclusive of both start and end dates)
+            scheduled_days = (scheduled_end_date - start_date).days + 1
+            actual_days = (actual_return_date - start_date).days + 1
 
             # Get original rental cost (per day rate)
             daily_rate = vehicle.get_daily_rate()
@@ -348,10 +348,17 @@ class VehicleRental:
                 # Early Return
                 return_type = "early"
                 # Charge for actual days used
-                final_cost = vehicle.calculate_rental_cost(
-                    RentalPeriod(active_record.get_start_date(), return_date),
-                    user_discount
-                )
+                # If actual days < 7, no discount applies (even if original rental had discount)
+                actual_rental_period = RentalPeriod(active_record.get_start_date(), return_date)
+
+                # Determine discount for actual rental period
+                actual_discount = 0.0
+                if actual_days >= 7:
+                    # Keep the original user discount if actual days >= 7
+                    actual_discount = user_discount
+                # else: no discount for < 7 days
+
+                final_cost = vehicle.calculate_rental_cost(actual_rental_period, actual_discount)
                 refund = original_total_cost - final_cost
                 message = f"Early return: {scheduled_days - actual_days} day(s) unused. Refund: ${refund:.2f}"
 
@@ -374,17 +381,17 @@ class VehicleRental:
             # Create rental period for removal
             rental_period = RentalPeriod(active_record.get_start_date(), active_record.get_end_date())
 
-            # Remove rental from vehicle
-            if not vehicle.remove_rental(rental_period):
+            # Mark rental as completed in vehicle (pass actual return date)
+            if not vehicle.remove_rental(rental_period, return_date):
                 return {
                     'success': False,
-                    'error': 'Could not remove rental from vehicle.'
+                    'error': 'Could not complete rental in vehicle records.'
                 }
 
             # Complete rental in renter's records
             if not renter.complete_rental(vehicle_id, rental_period):
-                # Restore vehicle state
-                vehicle.add_rental(rental_period, renter_id)
+                # Restore vehicle state (revert from completed back to active)
+                vehicle.restore_active_rental(rental_period)
                 return {
                     'success': False,
                     'error': 'Could not update renter records.'

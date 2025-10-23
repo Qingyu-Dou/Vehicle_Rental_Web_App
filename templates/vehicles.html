@@ -4,61 +4,71 @@
 
 {% block content %}
 <div class="vehicles-page">
-    <h1>Available Vehicles</h1>
-    
+    <div class="page-header">
+        <h1>Available Vehicles</h1>
+    </div>
+
     <form method="GET" class="filter-form">
         <div class="filter-group">
-            <label>Type:</label>
-            <select name="type">
+            <label for="type">Vehicle Type:</label>
+            <select id="type" name="type">
                 <option value="">All Types</option>
                 <option value="Car" {% if current_type == 'Car' %}selected{% endif %}>Car</option>
                 <option value="Motorbike" {% if current_type == 'Motorbike' %}selected{% endif %}>Motorbike</option>
                 <option value="Truck" {% if current_type == 'Truck' %}selected{% endif %}>Truck</option>
             </select>
         </div>
-        
+
         <div class="filter-group">
-            <label>Brand:</label>
-            <input type="text" name="brand" value="{{ current_brand }}" placeholder="Search brand...">
+            <label for="brand">Brand:</label>
+            <input type="text" id="brand" name="brand" value="{{ current_brand }}" placeholder="Search brand...">
         </div>
-        
+
         <div class="filter-group">
-            <label>Price Range:</label>
-            <select name="price">
+            <label for="price">Price Range:</label>
+            <select id="price" name="price">
                 <option value="">All Prices</option>
                 <option value="0-50" {% if current_price == '0-50' %}selected{% endif %}>$0 - $50/day</option>
                 <option value="51-100" {% if current_price == '51-100' %}selected{% endif %}>$51 - $100/day</option>
                 <option value="101+" {% if current_price == '101+' %}selected{% endif %}>$101+/day</option>
             </select>
         </div>
-        
-        <button type="submit" class="btn btn-primary">Filter</button>
-        <a href="{{ url_for('vehicles') }}" class="btn btn-secondary">Clear</a>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{{ url_for('vehicles') }}" class="btn btn-secondary">Clear</a>
+        </div>
     </form>
-    
+
+    {% if vehicles|length > 0 %}
+    <div class="results-header">
+        <p class="results-count">Found {{ vehicles|length }} vehicle(s)</p>
+    </div>
+
     <div class="vehicle-grid">
         {% for vehicle in vehicles %}
         <div class="vehicle-card">
             <div class="vehicle-image">
-                <img src="{{ url_for('static', filename='images/vehicles/default.jpg') }}" 
+                <img src="{{ url_for('static', filename='images/vehicles/default.jpg') }}"
                      alt="{{ vehicle.get_make() }} {{ vehicle.get_model() }}"
                      onerror="this.src='{{ url_for('static', filename='images/vehicles/default.jpg') }}'">
             </div>
             <div class="vehicle-info">
                 <h3>{{ vehicle.get_year() }} {{ vehicle.get_make() }} {{ vehicle.get_model() }}</h3>
-                <p class="vehicle-type">{{ vehicle.get_vehicle_type() }}</p>
                 <p class="vehicle-price">${{ "%.2f"|format(vehicle.get_daily_rate()) }}/day</p>
                 <div class="vehicle-actions">
-                    <a href="{{ url_for('vehicle_detail', vehicle_id=vehicle.get_vehicle_id()) }}" 
-                       class="btn btn-small">View Details</a>
+                    <a href="{{ url_for('vehicle_detail', vehicle_id=vehicle.get_vehicle_id()) }}"
+                       class="btn btn-small btn-info">View Details & Book</a>
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
-    
-    {% if vehicles|length == 0 %}
-    <p class="no-results">No vehicles found matching your criteria.</p>
+    {% else %}
+    <div class="empty-state">
+        <p>No vehicles found matching your criteria.</p>
+        <a href="{{ url_for('vehicles') }}" class="btn btn-primary">View All Vehicles</a>
+    </div>
     {% endif %}
 </div>
 {% endblock %}

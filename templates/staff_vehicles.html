@@ -34,7 +34,7 @@
                 <td>${{ "%.2f"|format(vehicle.get_daily_rate()) }}</td>
                 <td>
                     <a href="{{ url_for('vehicle_detail', vehicle_id=vehicle.get_vehicle_id()) }}"
-                       class="btn btn-small">View</a>
+                       class="btn btn-small btn-info">View</a>
                 </td>
                 <td>
                     {% if not vehicle.is_currently_rented() %}

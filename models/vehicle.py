@@ -198,9 +198,12 @@ class Vehicle(ABC):
 
     # Rental management methods
     def is_available(self, rental_period) -> bool:
-        """Check if the vehicle is available for the given rental period."""
+        """
+        Check if the vehicle is available for the given rental period.
+        Considers both active and completed rentals (using actual return dates).
+        """
         # Check if object has required methods instead of isinstance (to avoid import issues)
-        if not (hasattr(rental_period, 'get_start_date') and 
+        if not (hasattr(rental_period, 'get_start_date') and
                 hasattr(rental_period, 'get_end_date') and
                 hasattr(rental_period, 'overlaps_with')):
             raise TypeError("rental_period must be a RentalPeriod object with required methods")
@@ -209,9 +212,16 @@ class Vehicle(ABC):
         from rental_period import RentalPeriod
         for existing_period_dict in self.__rental_periods:
             try:
+                # For completed rentals, use actual_end_date if available
+                # For active rentals, use scheduled end_date
+                if existing_period_dict.get('status') == 'completed' and 'actual_end_date' in existing_period_dict:
+                    end_date = existing_period_dict['actual_end_date']
+                else:
+                    end_date = existing_period_dict['end_date']
+
                 existing_period = RentalPeriod(
                     existing_period_dict['start_date'],
-                    existing_period_dict['end_date'],
+                    end_date,
                     allow_past_dates=True  # Allow past dates when checking existing periods
                 )
                 if rental_period.overlaps_with(existing_period):
@@ -241,26 +251,75 @@ class Vehicle(ABC):
         self.__rental_periods.append(rental_dict)
         self.__rental_history.append(rental_dict.copy())
     
-    def remove_rental(self, rental_period) -> bool:
-        """Remove a rental period when vehicle is returned."""
-        for i, period_dict in enumerate(self.__rental_periods):
-            if (period_dict['start_date'] == rental_period.get_start_date() and 
-                period_dict['end_date'] == rental_period.get_end_date()):
-                self.__rental_periods.pop(i)
-                
+    def remove_rental(self, rental_period, actual_return_date: str = None) -> bool:
+        """
+        Mark a rental period as completed when vehicle is returned.
+        The rental record remains to block those dates from future bookings.
+
+        Args:
+            rental_period: The original scheduled rental period
+            actual_return_date: The actual return date (DD-MM-YYYY), if different from scheduled
+        """
+        for period_dict in self.__rental_periods:
+            if (period_dict['start_date'] == rental_period.get_start_date() and
+                period_dict['end_date'] == rental_period.get_end_date() and
+                period_dict['status'] == 'active'):
+
+                # Mark as completed instead of removing
+                period_dict['status'] = 'completed'
+
+                # Update with actual return date if provided
+                if actual_return_date:
+                    period_dict['actual_end_date'] = actual_return_date
+                else:
+                    period_dict['actual_end_date'] = rental_period.get_end_date()
+
                 # Update rental history
                 for record in self.__rental_history:
-                    if (record['start_date'] == rental_period.get_start_date() and 
+                    if (record['start_date'] == rental_period.get_start_date() and
                         record['end_date'] == rental_period.get_end_date() and
                         record['status'] == 'active'):
                         record['status'] = 'completed'
+                        if actual_return_date:
+                            record['actual_end_date'] = actual_return_date
+                        else:
+                            record['actual_end_date'] = rental_period.get_end_date()
                         break
                 return True
         return False
-    
+
+    def restore_active_rental(self, rental_period) -> bool:
+        """
+        Restore a rental to active status (used for rollback when return fails).
+
+        Args:
+            rental_period: The rental period to restore
+        """
+        for period_dict in self.__rental_periods:
+            if (period_dict['start_date'] == rental_period.get_start_date() and
+                period_dict['end_date'] == rental_period.get_end_date() and
+                period_dict['status'] == 'completed'):
+
+                # Restore to active status
+                period_dict['status'] = 'active'
+                if 'actual_end_date' in period_dict:
+                    del period_dict['actual_end_date']
+
+                # Update rental history
+                for record in self.__rental_history:
+                    if (record['start_date'] == rental_period.get_start_date() and
+                        record['end_date'] == rental_period.get_end_date() and
+                        record['status'] == 'completed'):
+                        record['status'] = 'active'
+                        if 'actual_end_date' in record:
+                            del record['actual_end_date']
+                        break
+                return True
+        return False
+
     def is_currently_rented(self) -> bool:
-        """Check if the vehicle is currently rented."""
-        return len(self.__rental_periods) > 0
+        """Check if the vehicle is currently rented (has active rentals)."""
+        return any(period['status'] == 'active' for period in self.__rental_periods)
     
     def get_base_rental_cost(self, rental_period) -> float:
         """Calculate base rental cost without discounts."""

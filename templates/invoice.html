@@ -6,8 +6,8 @@
 <div class="invoice-page">
     <div class="invoice">
         <h1>Rental Invoice</h1>
-        <p class="invoice-date">Rental Date: {{ rental.start_date }}</p>
-        
+        <p class="invoice-date">Rental Date: {{ rental['start_date'] }}</p>
+
         <div class="invoice-section">
             <h2>Customer Information</h2>
             <p><strong>Name:</strong> {{ user.get_name() }}</p>
@@ -15,7 +15,7 @@
             <p><strong>Type:</strong> {{ user.get_user_type() }}</p>
             <p><strong>Contact:</strong> {{ user.get_contact_info() }}</p>
         </div>
-        
+
         <div class="invoice-section">
             <h2>Vehicle Information</h2>
             <p><strong>Vehicle:</strong> {{ vehicle.get_year() }} {{ vehicle.get_make() }} {{ vehicle.get_model() }}</p>
@@ -23,24 +23,24 @@
             <p><strong>Type:</strong> {{ vehicle.get_vehicle_type() }}</p>
             <p><strong>Daily Rate:</strong> ${{ "%.2f"|format(vehicle.get_daily_rate()) }}</p>
         </div>
-        
+
         <div class="invoice-section">
             <h2>Rental Details</h2>
-            <p><strong>Start Date:</strong> {{ rental.start_date }}</p>
-            <p><strong>End Date:</strong> {{ rental.end_date }}</p>
-            <p><strong>Duration:</strong> {{ rental.duration }} days</p>
-            <p><strong>Status:</strong> {{ rental.status|upper }}</p>
+            <p><strong>Start Date:</strong> {{ rental['start_date'] }}</p>
+            <p><strong>End Date:</strong> {{ rental['end_date'] }}</p>
+            <p><strong>Duration:</strong> {{ rental['duration'] }} days</p>
+            <p><strong>Status:</strong> {{ rental['status']|upper }}</p>
         </div>
-        
+
         <div class="invoice-section">
             <h2>Payment Summary</h2>
             <table class="invoice-table">
                 <tr class="total-row">
                     <td><strong>Total Amount:</strong></td>
-                    <td><strong>${{ "%.2f"|format(rental.cost) }}</strong></td>
+                    <td><strong>${{ "%.2f"|format(rental['cost']) }}</strong></td>
                 </tr>
             </table>
-            <p class="invoice-note">* Price includes applicable discounts and GST (5%)</p>
+            <p class="invoice-note">* Price includes applicable discounts</p>
         </div>
         
         <div class="invoice-actions">
@@ -49,13 +49,4 @@
         </div>
     </div>
 </div>
-
-<style>
-.invoice-note {
-    margin-top: 1rem;
-    font-size: 0.9rem;
-    color: #666;
-    font-style: italic;
-}
-</style>
 {% endblock %}

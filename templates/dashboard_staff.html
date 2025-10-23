@@ -3,10 +3,8 @@
 {% block title %}Staff Dashboard{% endblock %}
 
 {% block content %}
-<div class="dashboard">
-    <h1>Staff Dashboard</h1>
-    <p class="user-type">Welcome, {{ user.get_name() }} ({{ user.get_role() }})</p>
-
+<h1>Staff Dashboard</h1>
+    <div style="height:24px;"></div>
     <div class="stats-grid">
         <div class="stat-card">
             <h3>Total Vehicles</h3>
@@ -25,73 +23,19 @@
             <p class="stat-number">{{ active_count }}</p>
         </div>
     </div>
-</div>
 
-<style>
-.dashboard {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem 1rem;
-}
+    <div style="height:24px;"></div>
 
-.dashboard h1 {
-    margin-bottom: 0.5rem;
-    color: #2c3e50;
-}
-
-.user-type {
-    color: #666;
-    margin-bottom: 2rem;
-    font-size: 1rem;
-}
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-}
-
-.stat-card {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    border: 1px solid #e0e0e0;
-    text-align: center;
-}
-
-.stat-card h3 {
-    margin: 0 0 1rem 0;
-    color: #666;
-    font-size: 0.95rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.stat-number {
-    margin: 0;
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #2c3e50;
-}
-
-@media (max-width: 768px) {
-    .dashboard {
-        padding: 1rem;
-    }
-
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-    }
-
-    .stat-card {
-        padding: 1rem;
-    }
-
-    .stat-number {
-        font-size: 2rem;
-    }
-}
-</style>
+    <div class="access-grid">
+        <a href="{{ url_for('staff_users') }}" class="access-card">
+            <div class="access-icon">👥</div>
+            <h3>Manage Users</h3>
+            <p>View and manage all users in the system</p>
+        </a>
+        <a href="{{ url_for('staff_vehicles') }}" class="access-card">
+            <div class="access-icon">🚗</div>
+            <h3>Manage Vehicles</h3>
+            <p>View and manage all vehicles in the fleet</p>
+        </a>
+    </div>
 {% endblock %}

@@ -113,33 +113,18 @@ class Car(Vehicle):
     
     def calculate_rental_cost(self, rental_period: RentalPeriod, user_discount: float = 0.0) -> float:
         """
-        Calculate the rental cost for a car with car-specific adjustments.
-        
+        Calculate the rental cost for a car.
+
         Args:
             rental_period (RentalPeriod): The rental period
             user_discount (float): User-specific discount percentage (0.0 to 1.0)
-            
+
         Returns:
-            float: Total rental cost after discounts and adjustments
+            float: Total rental cost after discounts
         """
         base_cost = self.get_base_rental_cost(rental_period)
-        
-        # Car-specific pricing adjustments
-        premium_multiplier = 1.0
-        
-        # Electric vehicles get premium pricing
-        if self.__fuel_type == "Electric":
-            premium_multiplier += 0.15
-        elif self.__fuel_type == "Hybrid":
-            premium_multiplier += 0.10
-        
-        # Automatic transmission premium
-        if self.__transmission in ["Automatic", "CVT"]:
-            premium_multiplier += 0.05
-        
-        adjusted_cost = base_cost * premium_multiplier
-        final_cost = self.apply_discount(adjusted_cost, user_discount)
-        
+        final_cost = self.apply_discount(base_cost, user_discount)
+
         return round(final_cost, 2)
     
     def get_vehicle_type(self) -> str:

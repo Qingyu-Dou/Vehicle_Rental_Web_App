@@ -106,43 +106,18 @@ class Truck(Vehicle):
     
     def calculate_rental_cost(self, rental_period: RentalPeriod, user_discount: float = 0.0) -> float:
         """
-        Calculate the rental cost for a truck with truck-specific adjustments.
-        
+        Calculate the rental cost for a truck.
+
         Args:
             rental_period (RentalPeriod): The rental period
             user_discount (float): User-specific discount percentage (0.0 to 1.0)
-            
+
         Returns:
-            float: Total rental cost after discounts and adjustments
+            float: Total rental cost after discounts
         """
         base_cost = self.get_base_rental_cost(rental_period)
-        
-        # Truck-specific pricing adjustments
-        premium_multiplier = 1.0
-        
-        # Load capacity adjustments
-        if self.__load_capacity >= 20:
-            premium_multiplier += 0.50  # Heavy trucks premium
-        elif self.__load_capacity >= 10:
-            premium_multiplier += 0.30  # Medium trucks premium
-        elif self.__load_capacity >= 5:
-            premium_multiplier += 0.15  # Light-medium trucks premium
-        
-        # Truck type adjustments
-        if self.__truck_type == "Heavy":
-            premium_multiplier += 0.25
-        elif self.__truck_type == "Box":
-            premium_multiplier += 0.10
-        elif self.__truck_type == "Flatbed":
-            premium_multiplier += 0.05
-        
-        # Hydraulic lift premium
-        if self.__has_hydraulic_lift:
-            premium_multiplier += 0.15
-        
-        adjusted_cost = base_cost * premium_multiplier
-        final_cost = self.apply_discount(adjusted_cost, user_discount)
-        
+        final_cost = self.apply_discount(base_cost, user_discount)
+
         return round(final_cost, 2)
     
     def get_vehicle_type(self) -> str:
