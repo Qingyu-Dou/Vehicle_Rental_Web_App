@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Rent Vehicle{% endblock %}
+
+{% block content %}
+<div class="rent-form-page">
+    <h1>Rent Vehicle</h1>
+
+    <div class="vehicle-info">
+        <h2>{{ vehicle.get_year() }} {{ vehicle.get_make() }} {{ vehicle.get_model() }}</h2>
+        <p class="daily-rate">Daily Rate: ${{ "%.2f"|format(vehicle.get_daily_rate()) }}</p>
+    </div>
+
+    <form method="POST" class="rental-form" id="rentalForm">
+        <div class="form-group">
+            <label for="start_date">Start Date:</label>
+            <input type="date" id="start_date" name="start_date" required>
+        </div>
+
+        <div class="form-group">
+            <label for="end_date">End Date:</label>
+            <input type="date" id="end_date" name="end_date" required>
+        </div>
+
+        <div class="pricing-info">
+            <h3>Pricing Information</h3>
+            <table class="pricing-table">
+                <tr>
+                    <td>Base Rate:</td>
+                    <td class="price">${{ "%.2f"|format(vehicle.get_daily_rate()) }}/day</td>
+                </tr>
+                {% if session.user_type == 'Corporate' %}
+                <tr class="discount-row">
+                    <td>Corporate Discount:</td>
+                    <td class="discount">15% off all rentals</td>
+                </tr>
+                {% elif session.user_type == 'Individual' %}
+                <tr class="discount-row">
+                    <td>Individual Discount:</td>
+                    <td class="discount">10% off rentals of 7+ days</td>
+                </tr>
+                {% endif %}
+            </table>
+            <p class="note">Final cost will be calculated based on rental duration.</p>
+        </div>
+
+        {% if rental_periods and rental_periods|length > 0 %}
+        <div class="availability-note">
+            <p>This vehicle has rented periods. View the <a href="{{ url_for('vehicle_detail', vehicle_id=vehicle.get_vehicle_id()) }}">Availability Calendar</a> to check available dates.</p>
+        </div>
+        {% endif %}
+
+        <div class="form-actions">
+            <a href="{{ url_for('vehicle_detail', vehicle_id=vehicle.get_vehicle_id()) }}" class="btn btn-secondary">Back</a>
+            <button type="submit" class="btn btn-primary">Confirm Rental</button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Set minimum date to today
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('start_date').min = today;
+document.getElementById('end_date').min = today;
+
+// Parse rented periods from backend (DD-MM-YYYY format)
+const rentedPeriods = [
+    {% for period in rental_periods %}
+    {
+        start: '{{ period["start_date"] }}',
+        end: '{{ period["end_date"] }}',
+        actualEnd: {% if period.get("actual_end_date") %}'{{ period["actual_end_date"] }}'{% else %}null{% endif %},
+        status: '{{ period.get("status", "active") }}'
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
+// Convert DD-MM-YYYY to Date object
+function parseDate(dateStr) {
+    const parts = dateStr.split('-');
+    return new Date(parts[2], parts[1] - 1, parts[0]);
+}
+
+// Check if two date ranges overlap
+// Rental period: start date to end date (both inclusive)
+function dateRangesOverlap(start1, end1, start2, end2) {
+    // New rental: [start1, end1]
+    // Existing rental: [start2, end2]
+    // They overlap if: start1 <= end2 AND end1 >= start2
+    return start1 <= end2 && end1 >= start2;
+}
+
+// Validate that selected dates don't overlap with rented periods
+function validateDates() {
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+
+    const startDate = startDateInput.value;
+    const endDate = endDateInput.value;
+
+    if (!startDate || !endDate) {
+        return true;
+    }
+
+    const selectedStart = new Date(startDate);
+    const selectedEnd = new Date(endDate);
+
+    for (const period of rentedPeriods) {
+        const rentedStart = parseDate(period.start);
+
+        // For completed rentals, use actual end date if available
+        // For active rentals, use scheduled end date
+        let rentedEnd;
+        if (period.status === 'completed' && period.actualEnd) {
+            rentedEnd = parseDate(period.actualEnd);
+        } else {
+            rentedEnd = parseDate(period.end);
+        }
+
+        if (dateRangesOverlap(selectedStart, selectedEnd, rentedStart, rentedEnd)) {
+            const endDateStr = (period.status === 'completed' && period.actualEnd) ? period.actualEnd : period.end;
+            alert('The selected dates overlap with an existing rental period (' + period.start + ' to ' + endDateStr + ').\n\nPlease choose different dates.');
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// Ensure end date is after start date
+document.getElementById('start_date').addEventListener('change', function() {
+    document.getElementById('end_date').min = this.value;
+    if (document.getElementById('end_date').value) {
+        validateDates();
+    }
+});
+
+document.getElementById('end_date').addEventListener('change', function() {
+    validateDates();
+});
+
+// Validate on form submit
+document.getElementById('rentalForm').addEventListener('submit', function(e) {
+    if (!validateDates()) {
+        e.preventDefault();
+        return false;
+    }
+});
+</script>
+{% endblock %}

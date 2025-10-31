@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Add User{% endblock %}
+
+{% block content %}
+<div class="staff-page">
+    <h1>Add New User</h1>
+    
+    <form method="POST" class="staff-form" id="addUserForm">
+        <div class="form-group">
+            <label for="user_type">User Type:</label>
+            <select id="user_type" name="user_type" required onchange="toggleFields()">
+                <option value="">Select Type</option>
+                <option value="Individual">Individual</option>
+                <option value="Corporate">Corporate</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="user_id">User ID:</label>
+            <input type="text" id="user_id" name="user_id" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="contact">Contact (Email/Phone):</label>
+            <input type="text" id="contact" name="contact" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" value="password123" required>
+        </div>
+        
+        <!-- Individual User Fields -->
+        <div id="individual_fields" style="display:none;">
+            <h3>Individual User Details</h3>
+            <div class="form-group">
+                <label for="dob">Date of Birth (DD-MM-YYYY):</label>
+                <input type="text" id="dob" name="dob" placeholder="01-01-1990">
+            </div>
+            <div class="form-group">
+                <label for="license">License Number:</label>
+                <input type="text" id="license" name="license">
+            </div>
+        </div>
+        
+        <!-- Corporate User Fields -->
+        <div id="corporate_fields" style="display:none;">
+            <h3>Corporate User Details</h3>
+            <div class="form-group">
+                <label for="company">Company Name:</label>
+                <input type="text" id="company" name="company">
+            </div>
+            <div class="form-group">
+                <label for="registration">Business Registration:</label>
+                <input type="text" id="registration" name="registration">
+            </div>
+            <div class="form-group">
+                <label for="address">Billing Address:</label>
+                <textarea id="address" name="address" rows="3"></textarea>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <a href="{{ url_for('staff_users') }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Add User</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleFields() {
+    var userType = document.getElementById('user_type').value;
+    var individualFields = document.getElementById('individual_fields');
+    var corporateFields = document.getElementById('corporate_fields');
+    
+    if (userType === 'Individual') {
+        individualFields.style.display = 'block';
+        corporateFields.style.display = 'none';
+        // Make individual fields required
+        document.getElementById('dob').required = true;
+        document.getElementById('license').required = true;
+        // Make corporate fields not required
+        document.getElementById('company').required = false;
+        document.getElementById('registration').required = false;
+        document.getElementById('address').required = false;
+    } else if (userType === 'Corporate') {
+        individualFields.style.display = 'none';
+        corporateFields.style.display = 'block';
+        // Make corporate fields required
+        document.getElementById('company').required = true;
+        document.getElementById('registration').required = true;
+        document.getElementById('address').required = true;
+        // Make individual fields not required
+        document.getElementById('dob').required = false;
+        document.getElementById('license').required = false;
+    } else {
+        individualFields.style.display = 'none';
+        corporateFields.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

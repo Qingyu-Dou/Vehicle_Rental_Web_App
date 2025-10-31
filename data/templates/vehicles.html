@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Browse Vehicles{% endblock %}
+
+{% block content %}
+<div class="vehicles-page">
+    <div class="page-header">
+        <h1>Available Vehicles</h1>
+    </div>
+
+    <form method="GET" class="filter-form">
+        <div class="filter-group">
+            <label for="type">Vehicle Type:</label>
+            <select id="type" name="type">
+                <option value="">All Types</option>
+                <option value="Car" {% if current_type == 'Car' %}selected{% endif %}>Car</option>
+                <option value="Motorbike" {% if current_type == 'Motorbike' %}selected{% endif %}>Motorbike</option>
+                <option value="Truck" {% if current_type == 'Truck' %}selected{% endif %}>Truck</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="brand">Brand:</label>
+            <input type="text" id="brand" name="brand" value="{{ current_brand }}" placeholder="Search brand...">
+        </div>
+
+        <div class="filter-group">
+            <label for="price">Price Range:</label>
+            <select id="price" name="price">
+                <option value="">All Prices</option>
+                <option value="0-50" {% if current_price == '0-50' %}selected{% endif %}>$0 - $50/day</option>
+                <option value="51-100" {% if current_price == '51-100' %}selected{% endif %}>$51 - $100/day</option>
+                <option value="101+" {% if current_price == '101+' %}selected{% endif %}>$101+/day</option>
+            </select>
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{{ url_for('vehicles') }}" class="btn btn-secondary">Clear</a>
+        </div>
+    </form>
+
+    {% if vehicles|length > 0 %}
+    <div class="results-header">
+        <p class="results-count">Found {{ vehicles|length }} vehicle(s)</p>
+    </div>
+
+    <div class="vehicle-grid">
+        {% for vehicle in vehicles %}
+        <div class="vehicle-card">
+            <div class="vehicle-image">
+                <img src="{{ url_for('static', filename='images/vehicles/' + vehicle.get_image_filename()) }}"
+                     alt="{{ vehicle.get_make() }} {{ vehicle.get_model() }}"
+                     onerror="this.src='{{ url_for('static', filename='images/vehicles/default.jpg') }}'">
+            </div>
+            <div class="vehicle-info">
+                <h3>{{ vehicle.get_year() }} {{ vehicle.get_make() }} {{ vehicle.get_model() }}</h3>
+                <p class="vehicle-price">${{ "%.2f"|format(vehicle.get_daily_rate()) }}/day</p>
+                <div class="vehicle-actions">
+                    <a href="{{ url_for('vehicle_detail', vehicle_id=vehicle.get_vehicle_id()) }}"
+                       class="btn btn-small btn-info">View Details & Book</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>No vehicles found matching your criteria.</p>
+        <a href="{{ url_for('vehicles') }}" class="btn btn-primary">View All Vehicles</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

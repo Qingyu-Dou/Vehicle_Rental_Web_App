@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h1>Welcome, {{ user.get_name() }}!</h1>
+    <div style="height:24px;"></div>    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Active Rentals</h3>
+            <p class="stat-number">{{ active_rentals|length }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Total Rentals</h3>
+            <p class="stat-number">{{ total_rentals }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Discount Rate</h3>
+            <p class="stat-number">{% if user.get_user_type() == 'Corporate' %}15%{% else %}10%{% endif %}</p>
+            <p class="stat-note">{% if user.get_user_type() == 'Individual' %}Applies to 7+ day rentals{% endif %}</p>
+            <p class="stat-note">{% if user.get_user_type() == 'Corporate' %}Applies to corporate rentals{% endif %}</p>
+        </div>
+    </div>
+    
+    <h2>Active Rentals</h2>
+    {% if active_rentals %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Vehicle ID</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Cost</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rental in active_rentals %}
+            <tr>
+                <td>{{ rental.get_vehicle_id() }}</td>
+                <td>{{ rental.get_start_date() }}</td>
+                <td>{{ rental.get_end_date() }}</td>
+                <td>${{ "%.2f"|format(rental.get_rental_cost()) }}</td>
+                <td><span class="status-{{ rental.get_status() }}">{{ rental.get_status()|upper }}</span></td>
+                <td>
+                    <a href="{{ url_for('return_vehicle', vehicle_id=rental.get_vehicle_id()) }}" class="btn btn-small">Return</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+<p>No active rentals. <a href="{{ url_for('vehicles') }}">Search for vehicles</a></p>
+{% endif %}
+{% endblock %}

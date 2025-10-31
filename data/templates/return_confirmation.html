@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Return Confirmation{% endblock %}
+
+{% block content %}
+<div class="return-confirmation-page">
+    <h1>Vehicle Return Confirmation</h1>
+
+    <div class="confirmation-container">
+        <!-- Return Type Banner -->
+        <div class="return-banner {{ result['return_type'] }}">
+            {% if result['return_type'] == 'early' %}
+            <div class="banner-icon">✓</div>
+            <div class="banner-content">
+                <h2>Early Return</h2>
+                <p>Thank you for returning the vehicle early!</p>
+            </div>
+            {% elif result['return_type'] == 'overdue' %}
+            <div class="banner-icon">⚠</div>
+            <div class="banner-content">
+                <h2>Overdue Return</h2>
+                <p>Vehicle was returned after the scheduled date.</p>
+            </div>
+            {% else %}
+            <div class="banner-icon">✓</div>
+            <div class="banner-content">
+                <h2>On-Time Return</h2>
+                <p>Vehicle returned as scheduled.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Vehicle Information -->
+        <div class="info-section">
+            <h3>Vehicle Information</h3>
+            <table class="info-table">
+                <tr>
+                    <td>Vehicle:</td>
+                    <td><strong>{{ vehicle.get_year() }} {{ vehicle.get_make() }} {{ vehicle.get_model() }}</strong></td>
+                </tr>
+                <tr>
+                    <td>Vehicle ID:</td>
+                    <td>{{ vehicle.get_vehicle_id() }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Rental Dates -->
+        <div class="info-section">
+            <h3>Rental Period</h3>
+            <table class="info-table">
+                <tr>
+                    <td>Rental Start Date:</td>
+                    <td>{{ result['record'].get_start_date() }}</td>
+                </tr>
+                <tr>
+                    <td>Scheduled End Date:</td>
+                    <td>{{ result['scheduled_end_date'] }}</td>
+                </tr>
+                <tr class="highlight">
+                    <td>Actual Return Date:</td>
+                    <td><strong>{{ result['actual_return_date'] }}</strong></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Cost Breakdown -->
+        <div class="info-section cost-section">
+            <h3>Cost Summary</h3>
+            <table class="cost-table">
+                <tr>
+                    <td>Scheduled Days:</td>
+                    <td>{{ result['scheduled_days'] }} days</td>
+                </tr>
+                <tr>
+                    <td>Actual Days:</td>
+                    <td>{{ result['actual_days'] }} days</td>
+                </tr>
+                <tr class="divider">
+                    <td colspan="2"></td>
+                </tr>
+                <tr>
+                    <td>Original Cost:</td>
+                    <td>${{ "%.2f"|format(result['original_cost']) }}</td>
+                </tr>
+
+                {% if result['return_type'] == 'early' and result['refund'] > 0 %}
+                <tr class="refund-row">
+                    <td>Refund:</td>
+                    <td>- ${{ "%.2f"|format(result['refund']) }}</td>
+                </tr>
+                {% elif result['return_type'] == 'overdue' and result['penalty'] > 0 %}
+                <tr class="penalty-row">
+                    <td>Overdue Penalty (150% rate):</td>
+                    <td>+ ${{ "%.2f"|format(result['penalty']) }}</td>
+                </tr>
+                {% endif %}
+
+                <tr class="divider">
+                    <td colspan="2"></td>
+                </tr>
+                <tr class="total-row">
+                    <td><strong>Final Cost:</strong></td>
+                    <td><strong>${{ "%.2f"|format(result['final_cost']) }}</strong></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Message -->
+        <div class="message-box {{ result['return_type'] }}">
+            <p>{{ result['message'] }}</p>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions">
+            <button onclick="printInvoice()" class="btn btn-success">Print Invoice</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+            <a href="{{ url_for('rental_history') }}" class="btn btn-secondary">View History</a>
+        </div>
+    </div>
+</div>
+
+<script>
+function printInvoice() {
+    window.print();
+}
+</script>
+
+<style>
+@media print {
+    /* Hide elements that shouldn't be printed */
+    .navbar,
+    .actions,
+    footer {
+        display: none !important;
+    }
+
+    /* Ensure the confirmation container prints nicely */
+    .return-confirmation-page {
+        max-width: 100%;
+        margin: 0;
+        padding: 20px;
+    }
+
+    .confirmation-container {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+
+    /* Improve banner appearance in print */
+    .return-banner {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Ensure tables print properly */
+    .info-table,
+    .cost-table {
+        page-break-inside: avoid;
+    }
+
+    /* Add page break before cost section if needed */
+    .cost-section {
+        page-break-before: auto;
+    }
+}
+</style>
+
+{% endblock %}

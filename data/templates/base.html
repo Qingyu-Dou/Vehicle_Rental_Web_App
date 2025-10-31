@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Vehicle Rental System{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% if session.user_id %}
+    <nav class="navbar">
+        <div class="nav-brand">Vehicle Rental System</div>
+        <div class="nav-menu">
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            {% if session.user_type != 'Staff' %}
+            <a href="{{ url_for('vehicles') }}">Browse Vehicles</a>
+            <a href="{{ url_for('rental_history') }}">My Rentals History</a>
+            {% endif %}
+            {% if session.user_type == 'Staff' %}
+            <a href="{{ url_for('staff_users') }}">Manage Users</a>
+            <a href="{{ url_for('staff_vehicles') }}">Manage Vehicles</a>
+            <a href="{{ url_for('staff_history') }}">Rental History</a>
+            <a href="{{ url_for('staff_analytics') }}">Analytics</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" class="logout-btn">Logout ({{ session.user_name }})</a>
+        </div>
+    </nav>
+    {% endif %}
+    
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+    
+    <footer>
+        <p>&copy; 2025 Vehicle Rental System</p>
+    </footer>
+</body>
+</html>

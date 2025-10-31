@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block title %}{{ vehicle.get_make() }} {{ vehicle.get_model() }}{% endblock %}
+
+{% block content %}
+<div class="vehicle-detail-page">
+    <div class="page-header">
+        <h1>{{ vehicle.get_year() }} {{ vehicle.get_make() }} {{ vehicle.get_model() }}</h1>
+    </div>
+    <div class="content-wrapper">
+        <!-- Left Column: Image, Pricing and Vehicle Info -->
+        <div class="left-column">
+            <div class="vehicle-image-card">
+                <img src="{{ url_for('static', filename='images/vehicles/' + vehicle.get_image_filename()) }}"
+                     alt="{{ vehicle.get_make() }} {{ vehicle.get_model() }}"
+                     onerror="this.src='{{ url_for('static', filename='images/vehicles/default.jpg') }}'">
+            </div>
+
+            <div class="pricing-card">
+                <h3>Pricing</h3>
+                <div class="price-display">
+                    <span class="price-amount">${{ "%.2f"|format(vehicle.get_daily_rate()) }}</span>
+                    <span class="price-label">per day</span>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h2>Vehicle Information</h2>
+                <table class="info-table">
+                <tr>
+                    <th>ID</th>
+                    <td>{{ vehicle.get_vehicle_id() }}</td>
+                </tr>
+                <tr>
+                    <th>Type</th>
+                    <td>{{ vehicle.get_vehicle_type() }}</td>
+                </tr>
+                <tr>
+                    <th>Year</th>
+                    <td>{{ vehicle.get_year() }}</td>
+                </tr>
+
+                {% if vehicle.get_vehicle_type() == 'Car' %}
+                <tr>
+                    <th>Doors</th>
+                    <td>{{ vehicle.get_num_doors() }}</td>
+                </tr>
+                <tr>
+                    <th>Fuel Type</th>
+                    <td>{{ vehicle.get_fuel_type() }}</td>
+                </tr>
+                <tr>
+                    <th>Transmission</th>
+                    <td>{{ vehicle.get_transmission() }}</td>
+                </tr>
+                {% elif vehicle.get_vehicle_type() == 'Motorbike' %}
+                <tr>
+                    <th>Engine</th>
+                    <td>{{ vehicle.get_engine_capacity() }}cc</td>
+                </tr>
+                <tr>
+                    <th>Type</th>
+                    <td>{{ vehicle.get_bike_type() }}</td>
+                </tr>
+                <tr>
+                    <th>ABS</th>
+                    <td>{% if vehicle.has_abs_braking() %}Yes{% else %}No{% endif %}</td>
+                </tr>
+                {% elif vehicle.get_vehicle_type() == 'Truck' %}
+                <tr>
+                    <th>Load Capacity</th>
+                    <td>{{ vehicle.get_load_capacity() }} tonnes</td>
+                </tr>
+                <tr>
+                    <th>Type</th>
+                    <td>{{ vehicle.get_truck_type() }}</td>
+                </tr>
+                <tr>
+                    <th>Hydraulic Lift</th>
+                    <td>{% if vehicle.has_hydraulic_lift() %}Yes{% else %}No{% endif %}</td>
+                </tr>
+                {% endif %}
+                </table>
+            </div>
+        </div>
+
+        <!-- Right Column: Availability Calendar -->
+        <div class="right-column">
+            <!-- Availability Calendar -->
+            <div class="calendar-card">
+                <div class="calendar-header">
+                    <h2>Availability Calendar</h2>
+                </div>
+
+                <!-- Calendar Controls -->
+                <div class="calendar-controls">
+                    <button id="prevMonth" class="calendar-nav-btn">
+                        <span>‹</span>
+                    </button>
+                    <div class="calendar-current-month" id="currentMonth"></div>
+                    <button id="nextMonth" class="calendar-nav-btn">
+                        <span>›</span>
+                    </button>
+                </div>
+
+                <!-- Legend -->
+                <div class="calendar-legend">
+                    <div class="legend-item">
+                        <span class="legend-dot available"></span>
+                        <span>Available</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot rented"></span>
+                        <span>Rented</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot unavailable"></span>
+                        <span>Unavailable</span>
+                    </div>
+                </div>
+
+                <!-- Calendar Grid -->
+                <div class="calendar-grid">
+                    <div class="calendar-weekdays">
+                        <div class="weekday">Sun</div>
+                        <div class="weekday">Mon</div>
+                        <div class="weekday">Tue</div>
+                        <div class="weekday">Wed</div>
+                        <div class="weekday">Thu</div>
+                        <div class="weekday">Fri</div>
+                        <div class="weekday">Sat</div>
+                    </div>
+                    <div class="calendar-days" id="calendarDays">
+                        <!-- Days will be generated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <a href="{{ url_for('vehicles') }}" class="btn btn-back">Back to Vehicles</a>
+        <a href="{{ url_for('rent_vehicle', vehicle_id=vehicle.get_vehicle_id()) }}"
+           class="btn btn-rent">Rent This Vehicle</a>
+    </div>
+</div> <!-- End vehicle-detail-page -->
+
+<script>
+// Rental data from backend (DD-MM-YYYY format)
+const rentalRecords = [
+    {% for record in rental_records %}
+    {
+        startDate: '{{ record.get_start_date() }}',
+        endDate: '{{ record.get_end_date() }}',
+        actualReturnDate: {% if record.get_actual_return_date() %}'{{ record.get_actual_return_date() }}'{% else %}null{% endif %},
+        status: '{{ record.get_status() }}'
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
+// Current view state
+let currentYear = new Date().getFullYear();
+let currentMonth = new Date().getMonth();
+
+// Parse DD-MM-YYYY to Date object
+function parseDate(dateStr) {
+    const parts = dateStr.split('-');
+    return new Date(parts[2], parts[1] - 1, parts[0]);
+}
+
+// Check if a date is rented
+// Rental period: start date to actual/scheduled end date (both inclusive)
+function isDateRented(date) {
+    const dateTime = date.getTime();
+
+    for (const record of rentalRecords) {
+        const startDate = parseDate(record.startDate);
+        let endDate;
+
+        // For completed rentals, use actual return date if available
+        // For active rentals, use scheduled end date
+        if (record.status === 'completed' && record.actualReturnDate) {
+            endDate = parseDate(record.actualReturnDate);
+        } else if (record.status === 'active') {
+            endDate = parseDate(record.endDate);
+        } else {
+            // Skip other statuses (cancelled, pending, etc.)
+            continue;
+        }
+
+        // Both start and end dates are rented (closed interval [start, end])
+        if (dateTime >= startDate.getTime() && dateTime <= endDate.getTime()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Determine date status
+function getDateStatus(date, isOtherMonth) {
+    if (isOtherMonth) return 'other-month';
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Past dates (before today) are unavailable
+    if (date < today) {
+        return 'unavailable';
+    }
+
+    // Check if rented
+    if (isDateRented(date)) {
+        return 'rented';
+    }
+
+    // Future dates that are not rented are available
+    return 'available';
+}
+
+// Generate calendar for current month
+function generateCalendar() {
+    const calendarDays = document.getElementById('calendarDays');
+    const currentMonthElement = document.getElementById('currentMonth');
+
+    // Update month display
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+    currentMonthElement.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+    // Clear existing days
+    calendarDays.innerHTML = '';
+
+    // Get first day of month
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    const prevLastDay = new Date(currentYear, currentMonth, 0);
+
+    const firstDayOfWeek = firstDay.getDay();
+    const lastDate = lastDay.getDate();
+    const prevLastDate = prevLastDay.getDate();
+
+    // Previous month's trailing days
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+        const day = prevLastDate - i;
+        const date = new Date(currentYear, currentMonth - 1, day);
+        createDayElement(day, date, true);
+    }
+
+    // Current month's days
+    for (let day = 1; day <= lastDate; day++) {
+        const date = new Date(currentYear, currentMonth, day);
+        createDayElement(day, date, false);
+    }
+
+    // Next month's leading days
+    const totalCells = calendarDays.children.length;
+    const remainingCells = 42 - totalCells; // 6 rows × 7 days
+    for (let day = 1; day <= remainingCells; day++) {
+        const date = new Date(currentYear, currentMonth + 1, day);
+        createDayElement(day, date, true);
+    }
+}
+
+// Create a day element
+function createDayElement(day, date, isOtherMonth) {
+    const dayElement = document.createElement('div');
+    date.setHours(0, 0, 0, 0);
+
+    const status = getDateStatus(date, isOtherMonth);
+    dayElement.className = `calendar-day ${status}`;
+
+    // Day number
+    const dayNumber = document.createElement('div');
+    dayNumber.className = 'day-number';
+    dayNumber.textContent = day;
+    dayElement.appendChild(dayNumber);
+
+    document.getElementById('calendarDays').appendChild(dayElement);
+}
+
+// Navigation
+document.getElementById('prevMonth').addEventListener('click', () => {
+    currentMonth--;
+    if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+    }
+    generateCalendar();
+});
+
+document.getElementById('nextMonth').addEventListener('click', () => {
+    currentMonth++;
+    if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+    }
+    generateCalendar();
+});
+
+// Initialize calendar
+generateCalendar();
+</script>
+{% endblock %}

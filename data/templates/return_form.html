@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Return Vehicle{% endblock %}
+
+{% block content %}
+<div class="return-form-page">
+    <h1>Return Vehicle</h1>
+
+    <div class="rental-summary">
+        <h2>{{ vehicle.get_year() }} {{ vehicle.get_make() }} {{ vehicle.get_model() }}</h2>
+        <table class="summary-table">
+            <tr>
+                <td>Vehicle ID:</td>
+                <td><strong>{{ vehicle.get_vehicle_id() }}</strong></td>
+            </tr>
+            <tr>
+                <td>Rental Start:</td>
+                <td>{{ rental_record.get_start_date() }}</td>
+            </tr>
+            <tr>
+                <td>Scheduled End:</td>
+                <td>{{ rental_record.get_end_date() }}</td>
+            </tr>
+            <tr>
+                <td>Original Cost:</td>
+                <td><strong>${{ "%.2f"|format(rental_record.get_rental_cost()) }}</strong></td>
+            </tr>
+        </table>
+    </div>
+
+    <form method="POST" class="return-form" id="returnForm">
+        <div class="form-group">
+            <label for="return_date">Select Return Date:</label>
+            <input type="date"
+                   id="return_date"
+                   name="return_date"
+                   value="{{ today }}"
+                   min="{{ today }}"
+                   required>
+        </div>
+
+        <div class="return-info-box" id="returnInfo">
+            <!-- JavaScript will populate this -->
+        </div>
+
+        <div class="instructions">
+            <h3>Return Instructions</h3>
+            <ul>
+                <li><strong>Early Return:</strong> Return before scheduled date - refund for unused days</li>
+                <li><strong>On-Time Return:</strong> Return on scheduled date - original cost applies</li>
+                <li><strong>Overdue Return:</strong> Return after scheduled date - 150% penalty rate applies</li>
+            </ul>
+            <p class="note">Please ensure the vehicle is returned in good condition.</p>
+        </div>
+
+        <div class="form-actions">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Confirm Return</button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Parse scheduled end date
+const scheduledEndStr = "{{ rental_record.get_end_date() }}"; // DD-MM-YYYY
+const parts = scheduledEndStr.split('-');
+const scheduledEnd = new Date(parts[2], parts[1] - 1, parts[0]);
+
+// Daily rate and cost info
+const dailyRate = {{ vehicle.get_daily_rate() }};
+const originalCost = {{ rental_record.get_rental_cost() }};
+const discount = {{ rental_record.get_discount_applied() }};
+
+function updateReturnInfo() {
+    const returnDateInput = document.getElementById('return_date');
+    const returnInfo = document.getElementById('returnInfo');
+
+    if (!returnDateInput.value) {
+        returnInfo.innerHTML = '';
+        returnInfo.className = 'return-info-box';
+        return;
+    }
+
+    const returnDate = new Date(returnDateInput.value);
+    const scheduledEndNormalized = new Date(scheduledEnd);
+    scheduledEndNormalized.setHours(0, 0, 0, 0);
+    returnDate.setHours(0, 0, 0, 0);
+
+    let infoHTML = '';
+    let infoClass = 'return-info-box';
+
+    if (returnDate < scheduledEndNormalized) {
+        // Early Return
+        infoClass += ' early';
+        infoHTML = `
+            <h4>Early Return</h4>
+            <p>You will only be charged for the actual days used.</p>
+            <p>A refund will be issued for unused days.</p>
+        `;
+    } else if (returnDate > scheduledEndNormalized) {
+        // Overdue Return
+        const overdueDays = Math.floor((returnDate - scheduledEndNormalized) / (1000 * 60 * 60 * 24));
+        const penalty = overdueDays * dailyRate * 1.5;
+        infoClass += ' overdue';
+        infoHTML = `
+            <h4>Overdue Return</h4>
+            <p><strong>Warning:</strong> ${overdueDays} day(s) overdue</p>
+            <p>Penalty (150% rate): $${penalty.toFixed(2)}</p>
+            <p>Additional charge will be applied.</p>
+        `;
+    } else {
+        // Normal Return
+        infoClass += ' normal';
+        infoHTML = `
+            <h4>On-Time Return</h4>
+            <p>Returning as scheduled.</p>
+            <p>Original cost applies: $${originalCost.toFixed(2)}</p>
+        `;
+    }
+
+    returnInfo.className = infoClass;
+    returnInfo.innerHTML = infoHTML;
+}
+
+// Update info when date changes
+document.getElementById('return_date').addEventListener('change', updateReturnInfo);
+
+// Initialize on page load
+updateReturnInfo();
+</script>
+{% endblock %}

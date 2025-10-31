@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="staff-page">
+    <h1>Analytics Dashboard</h1>
+
+    <!-- Most/Least Rented Vehicles -->
+    <h2>Most/Least Rented Vehicles</h2>
+    <div class="top-grid">
+        <!-- Top 5 Most Rented -->
+        <div class="top-card">
+            <h3>Top 5 Most Rented</h3>
+            <div class="top-list">
+                {% for vehicle, count in top_5_vehicles %}
+                    {% if vehicle %}
+                    <div class="top-item">
+                        <div class="top-rank">{{ loop.index }}</div>
+                        <div class="top-info">
+                            <p class="top-name">{{ vehicle.get_make() }} {{ vehicle.get_model() }}</p>
+                            <p class="top-detail">{{ vehicle.get_vehicle_id() }} - {{ vehicle.get_vehicle_type() }}</p>
+                        </div>
+                        <div class="top-value">{{ count }} rentals</div>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <p>No records found.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Bottom 5 Least Rented -->
+        <div class="top-card">
+            <h3>Bottom 5 Least Rented</h3>
+            <div class="top-list">
+                {% for vehicle, count in bottom_5_vehicles %}
+                    {% if vehicle %}
+                    <div class="top-item">
+                        <div class="top-rank least">{{ loop.index }}</div>
+                        <div class="top-info">
+                            <p class="top-name">{{ vehicle.get_make() }} {{ vehicle.get_model() }}</p>
+                            <p class="top-detail">{{ vehicle.get_vehicle_id() }} - {{ vehicle.get_vehicle_type() }}</p>
+                        </div>
+                        <div class="top-value">{{ count }} rentals</div>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <p>No records found.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue Summaries -->
+    <div class="summary-section">
+        <h2>Revenue Summaries</h2>
+        <div class="summary-grid">
+            <!-- By Vehicle Type -->
+            <div class="summary-card">
+                <h3>By Vehicle Type</h3>
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Rentals</th>
+                            <th>Revenue</th>
+                            <th>Avg/Rental</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vtype in ['Car', 'Motorbike', 'Truck'] %}
+                        <tr>
+                            <td><strong>{{ vtype }}</strong></td>
+                            <td>{{ rentals_by_vehicle_type[vtype] }}</td>
+                            <td>${{ "%.2f"|format(revenue_by_vehicle_type[vtype]) }}</td>
+                            <td>
+                                {% if rentals_by_vehicle_type[vtype] > 0 %}
+                                ${{ "%.2f"|format(revenue_by_vehicle_type[vtype] / rentals_by_vehicle_type[vtype]) }}
+                                {% else %}
+                                $0.00
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- By User Type -->
+            <div class="summary-card">
+                <h3>By User Type</h3>
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Rentals</th>
+                            <th>Revenue</th>
+                            <th>Avg/Rental</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for utype in ['Individual', 'Corporate', 'Staff'] %}
+                        <tr>
+                            <td><strong>{{ utype }}</strong></td>
+                            <td>{{ rentals_by_user_type[utype] }}</td>
+                            <td>${{ "%.2f"|format(revenue_by_user_type[utype]) }}</td>
+                            <td>
+                                {% if rentals_by_user_type[utype] > 0 %}
+                                ${{ "%.2f"|format(revenue_by_user_type[utype] / rentals_by_user_type[utype]) }}
+                                {% else %}
+                                $0.00
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Total Revenue Summary -->
+        {% set total_rentals = rentals_by_vehicle_type['Car'] + rentals_by_vehicle_type['Motorbike'] + rentals_by_vehicle_type['Truck'] %}
+        {% set total_revenue = revenue_by_vehicle_type['Car'] + revenue_by_vehicle_type['Motorbike'] + revenue_by_vehicle_type['Truck'] %}
+        <div class="total-revenue-card">
+            <h3>Total Revenue Summary</h3>
+            <div class="total-revenue-grid">
+                <div class="total-stat-box">
+                    <div class="total-stat-label">Total Rentals</div>
+                    <div class="total-stat-value">{{ total_rentals }}</div>
+                </div>
+                <div class="total-stat-box">
+                    <div class="total-stat-label">Total Revenue</div>
+                    <div class="total-stat-value revenue">${{ "%.2f"|format(total_revenue) }}</div>
+                </div>
+                <div class="total-stat-box">
+                    <div class="total-stat-label">Average per Rental</div>
+                    <div class="total-stat-value">
+                        {% if total_rentals > 0 %}
+                        ${{ "%.2f"|format(total_revenue / total_rentals) }}
+                        {% else %}
+                        $0.00
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Activity Logs -->
+    <h2>User Activity Logs</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>User Name</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set activity_logs = [] %}
+            {% for record in records %}
+                {% set ns = namespace(renter=None) %}
+                {% for user in renters %}
+                    {% if user.get_renter_id() == record.get_renter_id() %}
+                        {% set ns.renter = user %}
+                    {% endif %}
+                {% endfor %}
+
+                {# Add rental activity #}
+                {% set rental_activity = {
+                    'time': record.get_created_at(),
+                    'user_name': ns.renter.get_name() if ns.renter else record.get_renter_id(),
+                    'user_type': ns.renter.get_user_type() if ns.renter else 'Unknown',
+                    'action': 'Rented vehicle ' ~ record.get_vehicle_id() ~ ' (' ~ record.get_start_date() ~ ' - ' ~ record.get_end_date() ~ ')',
+                    'sort_key': record.get_created_at()
+                } %}
+                {% set _ = activity_logs.append(rental_activity) %}
+
+                {# Add return activity if completed #}
+                {% if record.get_status() == 'completed' %}
+                    {% if record.get_return_type() == 'early' %}
+                        {% set return_action = 'Returned vehicle ' ~ record.get_vehicle_id() ~ ' early' %}
+                    {% elif record.get_return_type() == 'overdue' %}
+                        {% set return_action = 'Returned vehicle ' ~ record.get_vehicle_id() ~ ' overdue' %}
+                    {% else %}
+                        {% set return_action = 'Returned vehicle ' ~ record.get_vehicle_id() ~ ' on time' %}
+                    {% endif %}
+
+                    {% set return_time = record.get_actual_return_date() if record.get_actual_return_date() else record.get_end_date() %}
+                    {% set return_activity = {
+                        'time': return_time,
+                        'user_name': ns.renter.get_name() if ns.renter else record.get_renter_id(),
+                        'user_type': ns.renter.get_user_type() if ns.renter else 'Unknown',
+                        'action': return_action,
+                        'sort_key': return_time
+                    } %}
+                    {% set _ = activity_logs.append(return_activity) %}
+                {% endif %}
+            {% endfor %}
+
+            {# Sort and display activities #}
+            {% for activity in (activity_logs|sort(attribute='sort_key', reverse=True)) %}
+            <tr>
+                <td>{{ activity.time|format_datetime }}</td>
+                <td>{{ activity.user_name }} ({{ activity.user_type }})</td>
+                <td>{{ activity.action }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3">No activity logs found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="action-buttons">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        <a href="{{ url_for('staff_history') }}" class="btn btn-primary">View All Rental History</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Rental History{% endblock %}
+
+{% block content %}
+<div class="history-page">
+    <h1>My Rental History</h1>
+
+    {% if rental_records %}
+    <div class="history-list">
+        {% for record in rental_records|reverse %}
+        <div class="rental-card {{ record.get_status() }}">
+            <div class="card-header">
+                <div class="vehicle-info">
+                    <h3>{{ record.get_vehicle_id() }}</h3>
+                    <span class="status-badge status-{{ record.get_status() }}">
+                        {{ record.get_status()|upper }}
+                    </span>
+                </div>
+                {% if record.get_return_type() %}
+                <span class="return-type-badge {{ record.get_return_type() }}">
+                    {{ record.get_return_type()|upper }} RETURN
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="card-body">
+                <table class="rental-details">
+                    <tr>
+                        <td class="label">Rental Start:</td>
+                        <td class="value">{{ record.get_start_date() }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Scheduled End:</td>
+                        <td class="value">{{ record.get_end_date() }}</td>
+                    </tr>
+                    {% if record.get_actual_return_date() %}
+                    <tr class="highlight">
+                        <td class="label">Actual Return:</td>
+                        <td class="value"><strong>{{ record.get_actual_return_date() }}</strong></td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <td class="label">Duration:</td>
+                        <td class="value">{{ record.calculate_duration() }} days</td>
+                    </tr>
+                </table>
+
+                <div class="cost-section">
+                    <div class="cost-row">
+                        <span class="cost-label">Original Cost:</span>
+                        <span class="cost-value">${{ "%.2f"|format(record.get_rental_cost()) }}</span>
+                    </div>
+                    {% if record.get_final_cost() != record.get_rental_cost() %}
+                    <div class="cost-row final">
+                        <span class="cost-label">Final Cost:</span>
+                        <span class="cost-value final">${{ "%.2f"|format(record.get_final_cost()) }}</span>
+                    </div>
+                    {% if record.get_return_type() == 'early' %}
+                    <div class="cost-note refund">
+                        Refund: ${{ "%.2f"|format(record.get_rental_cost() - record.get_final_cost()) }}
+                    </div>
+                    {% elif record.get_return_type() == 'overdue' %}
+                    <div class="cost-note penalty">
+                        Penalty: +${{ "%.2f"|format(record.get_final_cost() - record.get_rental_cost()) }}
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: center;">
+                    <a href="{{ url_for('user_rental_invoice', record_id=record.get_record_id()) }}" class="btn btn-small btn-info" target="_blank">Rental Invoice</a>
+                    {% if record.get_status() == 'completed' %}
+                    <a href="{{ url_for('user_return_invoice', record_id=record.get_record_id()) }}" class="btn btn-small btn-info" target="_blank">Return Invoice</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>No rental history found.</p>
+        <a href="{{ url_for('vehicles') }}" class="btn btn-primary">Browse Vehicles</a>
+    </div>
+    {% endif %}
+
+    <div class="action-buttons">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}All Rental History{% endblock %}
+
+{% block content %}
+<div class="staff-page">
+    <h1>All Rental History</h1>
+    
+    {% if records %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Record ID</th>
+                <th>Vehicle ID</th>
+                <th>Renter ID</th>
+                <th>Start Date</th>
+                <th>Scheduled End</th>
+                <th>Actual Return</th>
+                <th>Days</th>
+                <th>Original Cost</th>
+                <th>Final Cost</th>
+                <th>Status</th>
+                <th>Return Type</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records|reverse %}
+            <tr>
+                <td>{{ record.get_record_id() }}</td>
+                <td>{{ record.get_vehicle_id() }}</td>
+                <td>{{ record.get_renter_id() }}</td>
+                <td>{{ record.get_start_date() }}</td>
+                <td>{{ record.get_end_date() }}</td>
+                <td>
+                    {% if record.get_actual_return_date() %}
+                        {{ record.get_actual_return_date() }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if record.get_actual_return_date() %}
+                        {{ record.calculate_actual_duration() }} days
+                    {% else %}
+                        {{ record.calculate_duration() }} days
+                    {% endif %}
+                </td>
+                <td>${{ "%.2f"|format(record.get_rental_cost()) }}</td>
+                <td>
+                    {% if record.get_final_cost() %}
+                        <strong>${{ "%.2f"|format(record.get_final_cost()) }}</strong>
+                    {% else %}
+                        ${{ "%.2f"|format(record.get_rental_cost()) }}
+                    {% endif %}
+                </td>
+                <td><span class="status-{{ record.get_status() }}">{{ record.get_status()|upper }}</span></td>
+                <td>
+                    {% if record.get_return_type() %}
+                        <span class="return-type-{{ record.get_return_type() }}">{{ record.get_return_type()|upper }}</span>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center;">
+                        <a href="{{ url_for('staff_rental_invoice', record_id=record.get_record_id()) }}" class="btn btn-small btn-info" target="_blank">Rental Invoice</a>
+                        {% if record.get_status() == 'completed' %}
+                        <a href="{{ url_for('staff_return_invoice', record_id=record.get_record_id()) }}" class="btn btn-small btn-info" target="_blank">Return Invoice</a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No rental records found.</p>
+    {% endif %}
+    
+    <div class="action-buttons">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        <a href="{{ url_for('staff_analytics') }}" class="btn btn-primary">View Analytics</a>
+    </div>
+</div>
+{% endblock %}
